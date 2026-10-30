@@ -1,0 +1,83 @@
+.folder-tree {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+
+.folder-tree-header {
+  padding: 20px 16px;
+  border-bottom: 2px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(to bottom, #fafafa 0%, #fff 100%);
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.header-icon {
+  font-size: 18px;
+  color: #1890ff;
+}
+
+.folder-tree-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 8px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #8c8c8c;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 64px !important;
+  color: #d9d9d9 !important;
+  margin-bottom: 20px;
+}
+
+.empty-text {
+  margin: 8px 0 4px 0 !important;
+  font-size: 16px !important;
+  font-weight: 500;
+  color: #595959 !important;
+}
+
+.empty-hint {
+  margin: 0 !important;
+  font-size: 13px !important;
+  color: #bfbfbf !important;
+}
+
+/* 滚动条样式 */
+.folder-tree-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.folder-tree-content::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.folder-tree-content::-webkit-scrollbar-thumb {
+  background: #d9d9d9;
+  border-radius: 4px;
+}
+
+.folder-tree-content::-webkit-scrollbar-thumb:hover {
+  background: #bfbfbf;
+}

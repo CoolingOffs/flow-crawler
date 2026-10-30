@@ -1,0 +1,107 @@
+{
+  "name": "示例流程 - 登录并采集",
+  "version": "1.0",
+  "description": "演示完整的登录和数据采集流程",
+  "task": [
+    {
+      "name": "登录",
+      "action": [
+        {
+          "id": 1,
+          "name": "流程任务_1",
+          "codeName": "flowTask_1",
+          "type": "once",
+          "commands": [
+            {
+              "action": "openBrower",
+              "data": {
+                "webUrl": "https://example.com/login",
+                "clearCache": true,
+                "finishwait": 2
+              }
+            },
+            {
+              "action": "setAttribute",
+              "data": {
+                "querySelector": "#username",
+                "attributeName": "value",
+                "attributeValue": "admin"
+              }
+            },
+            {
+              "action": "setAttribute",
+              "data": {
+                "querySelector": "#password",
+                "attributeName": "value",
+                "attributeValue": "password123"
+              }
+            },
+            {
+              "action": "clickBrowerElement",
+              "data": {
+                "querySelector": "#login-btn",
+                "finishwait": 3
+              }
+            },
+            {
+              "action": "wait",
+              "data": {
+                "seconds": 2
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "采集数据",
+      "action": [
+        {
+          "id": 2,
+          "name": "流程任务_2",
+          "codeName": "flowTask_2",
+          "type": "once",
+          "commands": [
+            {
+              "action": "clickBrowerElement",
+              "data": {
+                "querySelector": ".menu-item:nth-child(2)",
+                "finishwait": 2
+              }
+            },
+            {
+              "action": "getText",
+              "data": {
+                "querySelector": ".page-title",
+                "variableName": "pageTitle",
+                "textType": "innerText"
+              }
+            },
+            {
+              "action": "httpRequest",
+              "data": {
+                "method": "GET",
+                "url": "https://api.example.com/products",
+                "headers": {
+                  "Authorization": "Bearer token123"
+                },
+                "body": {},
+                "variableName": "productsData",
+                "timeout": 30
+              }
+            },
+            {
+              "action": "jsonExtract",
+              "data": {
+                "sourceVariable": "productsData",
+                "jsonPath": "$.data[*].name",
+                "variableName": "productNames",
+                "extractAll": true
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,185 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 全局动画 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-5px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(5px);
+  }
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light;
+  color: #213547;
+  background-color: #ffffff;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  line-height: 1.5;
+}
+
+/* 全局过渡效果 */
+.ant-modal-content,
+.ant-modal-wrap {
+  animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.ant-message-notice {
+  animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+/* 移除 Select 下拉菜单的动画，避免定位飘移问题 */
+
+.ant-dropdown-menu {
+  animation: scaleIn 0.2s ease-out !important;
+}
+
+.ant-btn {
+  transition: all 0.3s ease !important;
+}
+
+/* 按钮悬停动画，但排除 Select 内的元素 */
+.ant-btn:not(.ant-select *):not(.ant-select-arrow *) {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.ant-btn:not(.ant-select *):not(.ant-select-arrow *):hover {
+  transform: translateY(-2px) scale(1.02) !important;
+}
+
+.ant-btn:not(.ant-select *):not(.ant-select-arrow *):active {
+  transform: translateY(0) scale(0.98) !important;
+}
+
+.ant-input,
+.ant-select-selector,
+.ant-input-affix-wrapper {
+  transition: box-shadow 0.3s cubic-bezier(0.645, 0.045, 0.355, 1) !important;
+}
+
+.ant-input:focus,
+.ant-input-affix-wrapper-focused,
+.ant-select-focused .ant-select-selector {
+  box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.1) !important;
+}
+
+.ant-card {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* 只对特定卡片使用悬停动画，避免影响 Select */
+.left-panel .ant-card.panel-card:hover {
+  transform: translateY(-4px) !important;
+}
+
+.ant-form-item {
+  animation: fadeIn 0.4s ease-out;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 5px;
+  border: 2px solid #f0f0f0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}

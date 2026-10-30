@@ -1,0 +1,42 @@
+{
+  "name": "百度搜索示例",
+  "version": "1.0",
+  "description": "爬虫流程配置 - 百度搜索示例",
+  "task": [
+    {
+      "name": "百度搜索示例",
+      "action": [
+        {
+          "id": 1,
+          "name": "流程任务_1",
+          "codeName": "flowTask_1",
+          "type": "once",
+          "commands": [
+            {
+              "action": "openBrower",
+              "data": {
+                "webUrl": "https://www.baidu.com",
+                "clearCache": true,
+                "finishwait": 2
+              }
+            },
+            {
+              "action": "clickBrowerElement",
+              "data": {
+                "querySelector": "#kw",
+                "finishwait": 1
+              }
+            },
+            {
+              "action": "clickBrowerElement",
+              "data": {
+                "querySelector": "#su",
+                "finishwait": 1
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

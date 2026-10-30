@@ -1,0 +1,1065 @@
+.flow-editor {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  position: relative;
+}
+
+.flow-editor-header {
+  padding: 20px 24px;
+  background: linear-gradient(to bottom, #fafafa 0%, #fff 100%);
+  border-bottom: 2px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-info {
+  flex: 1;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.title-icon {
+  font-size: 20px;
+  color: #1890ff;
+}
+
+.header-info h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.header-info .subtitle {
+  margin: 4px 0 0 0;
+  font-size: 13px;
+  color: #8c8c8c;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.flow-editor-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.flow-editor-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.empty-content {
+  text-align: center;
+  padding: 60px 40px;
+}
+
+.empty-icon {
+  font-size: 80px !important;
+  color: #1890ff !important;
+  margin-bottom: 24px;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.empty-title {
+  margin: 0 0 8px 0 !important;
+  font-size: 20px !important;
+  font-weight: 600;
+  color: #262626 !important;
+}
+
+.empty-text {
+  margin: 0 !important;
+  font-size: 14px !important;
+  color: #8c8c8c !important;
+}
+
+.empty-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.empty-content-wrapper {
+  text-align: center;
+  padding: 60px 40px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.empty-icon-wrapper {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 24px;
+  background: linear-gradient(135deg, #e6f7ff 0%, #bae7ff 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(24, 144, 255, 0.2);
+}
+
+.empty-content-wrapper .empty-icon {
+  font-size: 48px !important;
+  margin: 0 !important;
+}
+
+.empty-content-wrapper .empty-title {
+  margin: 0 0 8px 0 !important;
+  font-size: 22px !important;
+  font-weight: 600;
+  color: #262626 !important;
+}
+
+.empty-content-wrapper .empty-text {
+  margin: 0 0 32px 0 !important;
+  font-size: 14px !important;
+  color: #8c8c8c !important;
+}
+
+.quick-add-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.quick-add-buttons .ant-btn {
+  padding: 12px 32px;
+  height: auto;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.quick-add-buttons .ant-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.steps-list {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 20px;
+}
+
+/* 步骤卡片 */
+.step-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  border: 2px solid #f0f0f0;
+}
+
+.step-card:hover {
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.2);
+  transform: translateY(-3px) scale(1.005);
+  border-color: #667eea;
+}
+
+.step-card .ant-card-head {
+  background: #fff !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+  transition: all 0.3s ease;
+}
+
+.step-card .ant-btn {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.step-card .ant-btn:hover {
+  transform: scale(1.2) rotate(10deg) !important;
+}
+
+.step-card .ant-card-head-title {
+  padding: 12px 0;
+}
+
+.step-number {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 15px;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  flex-shrink: 0;
+}
+
+.step-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.step-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.step-actions .ant-btn {
+  border-radius: 8px;
+}
+
+.step-content {
+  background: #fafafa;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+/* 配置表单 */
+.config-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-item label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #595959;
+  margin-bottom: 8px;
+  margin-top: 4px;
+  display: block;
+}
+
+.form-item .ant-input,
+.form-item .ant-input-number,
+.form-item .ant-select {
+  width: 100%;
+}
+
+
+.form-item .ant-input-affix-wrapper {
+  width: 100%;
+}
+
+.form-item .hint {
+  font-size: 12px;
+  color: #8c8c8c;
+  margin-top: 4px;
+}
+
+/* 表单项内元素对齐 - 只针对特定的 div */
+.form-item .element-index-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.form-item .ant-input-number {
+  width: 120px;
+  flex-shrink: 0;
+}
+
+/* 滚动条样式 */
+.flow-editor-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.flow-editor-content::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 4px;
+}
+
+.flow-editor-content::-webkit-scrollbar-thumb {
+  background: #bfbfbf;
+  border-radius: 4px;
+}
+
+.flow-editor-content::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+
+/* JSON 预览面板 */
+.json-preview-panel {
+  position: absolute;
+  right: 30px;
+  bottom: 30px;
+  width: 420px;
+  max-height: 520px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+  overflow: hidden;
+  border: 2px solid #1890ff;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.json-preview-panel.collapsed {
+  max-height: 56px;
+  width: 200px;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.json-panel-header {
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.json-panel-header:hover {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+.json-panel-header span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.json-panel-header .ant-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.json-panel-header .ant-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: scale(1.05);
+}
+
+.json-panel-content {
+  flex: 1;
+  overflow-y: auto;
+  background: #f6f8fa;
+}
+
+.json-panel-content pre {
+  margin: 0;
+  padding: 20px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.8;
+  color: #24292e;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+/* 代码高亮样式 */
+.json-panel-content pre {
+  color: #d73a49;
+}
+
+.json-panel-content {
+  color: #005cc5;
+}
+
+/* 滚动条样式 */
+.json-panel-content::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.json-panel-content::-webkit-scrollbar-track {
+  background: #f0f0f0;
+}
+
+.json-panel-content::-webkit-scrollbar-thumb {
+  background: #bfbfbf;
+  border-radius: 4px;
+}
+
+.json-panel-content::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+
+/* 变量管理面板 */
+.variables-panel {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  width: 380px;
+  max-height: 480px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.variables-panel.collapsed {
+  width: 200px;
+  max-height: 48px;
+}
+
+.variables-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.variables-panel-header .anticon {
+  margin-right: 8px;
+}
+
+.variables-panel-content {
+  background: #fff;
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.variable-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.variable-item:hover {
+  background: #f0f5ff;
+  border-color: #667eea;
+  transform: translateX(4px);
+}
+
+.variable-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.variable-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #667eea;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  margin-bottom: 4px;
+}
+
+.variable-source {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.variable-desc {
+  font-size: 12px;
+  color: #595959;
+  background: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.variable-copy-icon {
+  font-size: 14px;
+  color: #667eea;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.variable-item:hover .variable-copy-icon {
+  transform: scale(1.2);
+}
+
+.variable-hint {
+  padding: 12px;
+  font-size: 12px;
+  color: #8c8c8c;
+  text-align: center;
+  background: #fafafa;
+  border-radius: 8px;
+  margin-top: 4px;
+}
+
+/* 滚动条样式 */
+.variables-panel-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.variables-panel-content::-webkit-scrollbar-track {
+  background: #f0f0f0;
+}
+
+.variables-panel-content::-webkit-scrollbar-thumb {
+  background: #bfbfbf;
+  border-radius: 3px;
+}
+
+.variables-panel-content::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+
+/* 步骤类型弹窗 */
+.step-type-modal .ant-modal-content {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.step-type-modal .ant-modal-header {
+  background: linear-gradient(to right, #f0f5ff 0%, #fff 100%);
+  padding: 16px 24px;
+}
+
+.step-type-modal .ant-modal-body {
+  padding: 16px;
+}
+
+/* 步骤类型树 */
+.step-type-tree {
+  font-size: 14px;
+}
+
+.step-type-tree .ant-tree-node-content-wrapper {
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.step-type-tree .ant-tree-node-content-wrapper:hover {
+  background: #f0f5ff;
+}
+
+.step-type-tree .ant-tree-treenode {
+  margin-bottom: 4px;
+}
+
+.step-type-tree .ant-tree-indent {
+  width: 20px;
+}
+
+.step-type-tree .ant-tree-switcher {
+  line-height: 32px;
+}
+
+/* 树节点样式 */
+.tree-step-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+.tree-step-icon {
+  font-size: 20px;
+  color: #1890ff;
+  flex-shrink: 0;
+}
+
+.tree-step-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.tree-step-name {
+  font-size: 15px;
+  font-weight: 500;
+  color: #262626;
+}
+
+.tree-step-desc {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .json-preview-panel {
+    width: 380px;
+    max-height: 420px;
+  }
+  
+  .json-preview-panel.collapsed {
+    width: 180px;
+  }
+}
+
+@media (max-width: 768px) {
+  .json-preview-panel {
+    width: calc(100% - 60px);
+    right: 30px;
+    left: 30px;
+    max-height: 320px;
+  }
+  
+  .json-preview-panel.collapsed {
+    width: 180px;
+    left: auto;
+  }
+}
+
+/* 新手教程弹窗样式 */
+.tutorial-modal .ant-modal-content {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.tutorial-modal .ant-modal-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px 24px;
+}
+
+.tutorial-modal .ant-modal-title {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.tutorial-modal .ant-modal-title .anticon {
+  color: #fff;
+}
+
+.tutorial-modal .ant-modal-close {
+  color: #fff;
+}
+
+.tutorial-modal .ant-modal-close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.tutorial-content {
+  max-height: 65vh;
+  overflow-y: auto;
+  padding: 8px 4px;
+}
+
+.tutorial-content h4 {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  color: #262626;
+  font-weight: 600;
+}
+
+.tutorial-content h5 {
+  margin: 20px 0 12px 0;
+  font-size: 15px;
+  color: #1890ff;
+  font-weight: 600;
+  border-bottom: 2px solid #e6f7ff;
+  padding-bottom: 8px;
+}
+
+.tutorial-content p {
+  margin: 8px 0;
+  color: #595959;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.tutorial-content code {
+  background: #f0f5ff;
+  color: #1890ff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  border: 1px solid #d6e4ff;
+}
+
+.tutorial-section {
+  margin-bottom: 20px;
+}
+
+.tutorial-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tutorial-step {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: #f0f5ff;
+  border-radius: 8px;
+  border-left: 3px solid #1890ff;
+}
+
+.step-number {
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.step-content {
+  flex: 1;
+}
+
+.step-content strong {
+  color: #262626;
+  font-size: 14px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.step-content p {
+  margin: 0;
+  font-size: 13px;
+  color: #8c8c8c;
+}
+
+.tutorial-example {
+  margin-top: 12px;
+  background: #fafafa;
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid #f0f0f0;
+}
+
+.example-step {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px dashed #e8e8e8;
+}
+
+.example-step:last-child {
+  border-bottom: none;
+}
+
+.example-icon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.example-content {
+  flex: 1;
+}
+
+.example-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #262626;
+  margin-bottom: 6px;
+}
+
+.example-code {
+  font-size: 13px;
+  color: #595959;
+  line-height: 1.6;
+  background: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border-left: 3px solid #1890ff;
+}
+
+.code-highlight {
+  color: #1890ff;
+  font-weight: 600;
+  background: #f0f5ff;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.code-block {
+  background: #282c34;
+  color: #abb2bf;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  margin: 8px 0;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+
+.step-types-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.type-item {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  background: #fafafa;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+  transition: all 0.3s ease;
+}
+
+.type-item:hover {
+  background: #f0f5ff;
+  border-color: #1890ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.15);
+}
+
+.type-icon {
+  font-size: 20px;
+  color: #1890ff;
+  flex-shrink: 0;
+}
+
+.type-item strong {
+  display: block;
+  font-size: 13px;
+  color: #262626;
+  margin-bottom: 2px;
+}
+
+.type-item p {
+  margin: 0;
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.tutorial-list {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.tutorial-list li {
+  margin: 8px 0;
+  color: #595959;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.tutorial-list ul {
+  margin-top: 4px;
+  padding-left: 16px;
+}
+
+.tutorial-list strong {
+  color: #262626;
+  font-weight: 600;
+}
+
+.tutorial-tip {
+  margin-top: 20px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #fff7e6 0%, #fff2e8 100%);
+  border-left: 4px solid #fa8c16;
+  border-radius: 6px;
+  color: #ad4e00;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.tutorial-tip strong {
+  color: #d46b08;
+}
+
+.tutorial-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.tutorial-content::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 4px;
+}
+
+.tutorial-content::-webkit-scrollbar-thumb {
+  background: #bfbfbf;
+  border-radius: 4px;
+}
+
+.tutorial-content::-webkit-scrollbar-thumb:hover {
+  background: #8c8c8c;
+}
+
+/* 执行 JSON 弹窗样式 */
+.execute-json-modal .ant-modal-content {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.execute-json-modal .ant-modal-header {
+  background: linear-gradient(135deg, #52c41a 0%, #73d13d 100%);
+  padding: 16px 24px;
+}
+
+.execute-json-modal .ant-modal-title {
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.execute-json-modal .ant-modal-close {
+  color: white;
+}
+
+.execute-json-content {
+  padding: 8px 0;
+}
+
+.execute-json-tip {
+  background: linear-gradient(135deg, #f6ffed 0%, #e6fffb 100%);
+  border-left: 4px solid #52c41a;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #595959;
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.execute-json-tip code {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Monaco', 'Consolas', monospace;
+  font-size: 12px;
+  color: #52c41a;
+}
+
+/* 导入 JSON 弹窗样式 */
+.import-json-modal .ant-modal-content {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.import-json-modal .ant-modal-header {
+  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
+  padding: 16px 24px;
+}
+
+.import-json-modal .ant-modal-title {
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.import-json-modal .ant-modal-close {
+  color: white;
+}
+
+.import-json-content {
+  padding: 8px 0;
+}
+
+.import-json-tip {
+  background: linear-gradient(135deg, #e6f7ff 0%, #f0f5ff 100%);
+  border-left: 4px solid #1890ff;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #595959;
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.import-json-tip code {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Monaco', 'Consolas', monospace;
+  font-size: 12px;
+  color: #1890ff;
+}
