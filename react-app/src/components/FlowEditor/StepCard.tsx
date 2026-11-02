@@ -1,5 +1,5 @@
-import React from 'react';
-import { Step, STEP_TYPES, SELECTOR_TYPES, OpenUrlConfig, ClickElementConfig, WaitConfig, GetTextConfig, GetAttributeConfig, SetAttributeConfig, HttpRequestConfig, JsonExtractConfig, LoopConfig, InterceptRequestConfig } from '../../types';
+import React, { useState } from 'react';
+import { Step, STEP_TYPES, SELECTOR_TYPES, OpenUrlConfig, ClickElementConfig, WaitConfig, GetTextConfig, GetAttributeConfig, SetAttributeConfig, HttpRequestConfig, JsonExtractConfig, LoopConfig, InterceptRequestConfig, ExecuteScriptConfig, LocalStorageConfig, KeyboardActionConfig, ElementMethodConfig, VariableOperationConfig, DingTalkNotifyConfig } from '../../types';
 import { useStore } from '../../store/useStore';
 import { Card, Select, Input, InputNumber, Button, Space, AutoComplete, Switch } from 'antd';
 import { 
@@ -16,7 +16,14 @@ import {
   BranchesOutlined,
   SyncOutlined,
   StopOutlined,
-  EyeOutlined
+  EyeOutlined,
+  CodeOutlined,
+  DatabaseOutlined,
+  EnterOutlined,
+  ThunderboltOutlined,
+  FunctionOutlined,
+  FormOutlined,
+  BellOutlined
 } from '@ant-design/icons';
 import './StepCard.css';
 
@@ -29,11 +36,35 @@ interface StepCardProps {
 
 const StepCard: React.FC<StepCardProps> = ({ step, index, total, parentId }) => {
   const { updateStep, deleteStep, moveStep, updateStepConfig, addSubStep, deleteSubStep, updateSubStepConfig } = useStore();
+  const [remarkVisible, setRemarkVisible] = useState(false);
 
   const { Option } = Select;
 
   // 判断是否为子步骤
   const isSubStep = !!parentId;
+
+  // 更新步骤顶层字段（remark/logPrint/disabled）
+  const handleUpdateStepField = (field: string, value: any) => {
+    if (isSubStep) {
+      const steps = useStore.getState().steps;
+      const parentStep = steps.find(s => s.id === parentId);
+      if (parentStep) {
+        const loopConfig = parentStep.config as any;
+        const newSubSteps = (loopConfig.subSteps || []).map((s: any) =>
+          s.id === step.id ? { ...s, [field]: value } : s
+        );
+        useStore.setState(state => ({
+          steps: state.steps.map(s =>
+            s.id === parentId
+              ? { ...s, config: { ...loopConfig, subSteps: newSubSteps }, updatedAt: Date.now() }
+              : s
+          )
+        }));
+      }
+    } else {
+      updateStep(step.id, { [field]: value, updatedAt: Date.now() } as any);
+    }
+  };
 
   // 子步骤使用特殊的更新/删除函数
   const handleUpdateConfig = (config: any) => {
@@ -104,6 +135,18 @@ const StepCard: React.FC<StepCardProps> = ({ step, index, total, parentId }) => 
         return <SyncOutlined />;
       case 'interceptRequest':
         return <StopOutlined />;
+      case 'executeScript':
+        return <CodeOutlined />;
+      case 'localStorage':
+        return <DatabaseOutlined />;
+      case 'keyboardAction':
+        return <EnterOutlined />;
+      case 'elementMethod':
+        return <ThunderboltOutlined />;
+      case 'variableOperation':
+        return <FunctionOutlined />;
+      case 'dingTalkNotify':
+        return <BellOutlined />;
       default:
         return null;
     }
@@ -615,6 +658,12 @@ const StepCard: React.FC<StepCardProps> = ({ step, index, total, parentId }) => 
                   <Option value="httpRequest">HTTP 请求</Option>
                   <Option value="jsonExtract">JSON 提取</Option>
                   <Option value="interceptRequest">拦截请求</Option>
+                  <Option value="executeScript">注入 JS</Option>
+                  <Option value="localStorage">本地存储</Option>
+                  <Option value="keyboardAction">键盘操作</Option>
+                  <Option value="elementMethod">调用方法</Option>
+                  <Option value="variableOperation">变量操作</Option>
+                  <Option value="dingTalkNotify">钉钉推送</Option>
                 </Select>
               </div>
               <span className="hint">（子步骤将在每次循环时执行）</span>
@@ -722,6 +771,394 @@ const StepCard: React.FC<StepCardProps> = ({ step, index, total, parentId }) => 
           </div>
         );
 
+      case 'executeScript':
+        const scriptConfig = step.config as ExecuteScriptConfig;
+        return (
+          <div className="config-form">
+            <div className="form-item">
+              <label>JavaScript 代码：</label>
+              <Input.TextArea
+                rows={8}
+                placeholder={`// 在页面中执行的 JavaScript 代码\n// 示例 1：修改页面标题\ndocument.title = '新标题';\n\n// 示例 2：移除元素\ndocument.querySelector('.ads').remove();\n\n// 示例 3：注入脚本\nvar s = document.createElement('script');\ns.src = 'https://example.com/inject.js';\ndocument.head.appendChild(s);`}
+                value={scriptConfig.script}
+                onChange={(e) => handleUpdateConfig({ script: e.target.value })}
+                style={{ fontFamily: 'Monaco, Consolas, monospace', fontSize: '13px' }}
+              />
+              <span className="hint">（在页面中注入并执行 JS 代码，支持使用 <code>{'${变量名}'}</code> 引用变量）</span>
+            </div>
+          </div>
+        );
+
+      case 'localStorage':
+        const storageConfig = step.config as LocalStorageConfig;
+        return (
+          <div className="config-form">
+            <div className="form-item">
+              <label>操作类型：</label>
+              <Select
+                value={storageConfig.action}
+                onChange={(value) => handleUpdateConfig({ action: value })}
+                style={{ width: '100%' }}
+              >
+                <Option value="set">写入（保存值）</Option>
+                <Option value="get">读取（获取值）</Option>
+              </Select>
+            </div>
+
+            <div className="form-item">
+              <label>存储方式：</label>
+              <Select
+                value={storageConfig.storageType}
+                onChange={(value) => handleUpdateConfig({ storageType: value })}
+                style={{ width: '100%' }}
+              >
+                <Option value="local">本地（跨会话保留）</Option>
+                <Option value="session">会话（运行结束清除）</Option>
+              </Select>
+            </div>
+
+            <div className="form-item">
+              <label>存储键名：</label>
+              <Input
+                placeholder="例如：loginToken"
+                value={storageConfig.key}
+                onChange={(e) => handleUpdateConfig({ key: e.target.value })}
+              />
+            </div>
+
+            {storageConfig.action === 'set' ? (
+              <div className="form-item">
+                <label>存储值：</label>
+                <Input
+                  placeholder="输入要保存的值（支持变量，如 ${'{token}'}）"
+                  value={storageConfig.value}
+                  onChange={(e) => handleUpdateConfig({ value: e.target.value })}
+                />
+                <span className="hint">（支持使用变量引用，如 <code>{'${token}'}</code>）</span>
+              </div>
+            ) : (
+              <div className="form-item">
+                <label>读取后存入变量：</label>
+                <Input
+                  placeholder="例如：savedToken"
+                  value={storageConfig.variableName}
+                  onChange={(e) => handleUpdateConfig({ variableName: e.target.value })}
+                />
+                <span className="hint">（读取到的值将存入此变量，后续步骤可通过 <code>{'${变量名}'}</code> 引用）</span>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'keyboardAction':
+        const keyboardConfig = step.config as KeyboardActionConfig;
+        return (
+          <div className="config-form">
+            <div className="form-item">
+              <label>按键：</label>
+              <AutoComplete
+                options={[
+                  { value: 'Enter', label: 'Enter（回车）' },
+                  { value: 'Tab', label: 'Tab（切换焦点）' },
+                  { value: 'Escape', label: 'Escape（关闭/取消）' },
+                  { value: 'Backspace', label: 'Backspace（退格）' },
+                  { value: 'Delete', label: 'Delete（删除）' },
+                  { value: 'ArrowUp', label: '↑ 上移' },
+                  { value: 'ArrowDown', label: '↓ 下移' },
+                  { value: 'ArrowLeft', label: '← 左移' },
+                  { value: 'ArrowRight', label: '→ 右移' },
+                  { value: 'Space', label: 'Space（空格）' },
+                  { value: 'Home', label: 'Home（到开头）' },
+                  { value: 'End', label: 'End（到末尾）' },
+                  { value: 'PageUp', label: 'PageUp（上翻页）' },
+                  { value: 'PageDown', label: 'PageDown（下翻页）' },
+                ]}
+                placeholder="选择或输入按键名"
+                value={keyboardConfig.key}
+                onChange={(value) => handleUpdateConfig({ key: value })}
+                style={{ width: '100%' }}
+                allowClear
+              />
+              <span className="hint">（支持常用按键，也可输入自定义按键名）</span>
+            </div>
+
+            <div className="form-item">
+              <label>目标元素选择器（可选）：</label>
+              <Input
+                placeholder="例如：#search-input 或 .search-box（留空表示在当前焦点元素上按键）"
+                value={keyboardConfig.selector}
+                onChange={(e) => handleUpdateConfig({ selector: e.target.value })}
+              />
+              <span className="hint">（填写后会先聚焦该元素，再按键。留空表示直接按键）</span>
+            </div>
+
+            <div className="form-item">
+              <label>修饰键：</label>
+              <Select
+                mode="multiple"
+                placeholder="可选：Ctrl / Shift / Alt"
+                value={keyboardConfig.modifiers}
+                onChange={(value) => handleUpdateConfig({ modifiers: value })}
+                style={{ width: '100%' }}
+                allowClear
+              >
+                <Option value="Control">Ctrl</Option>
+                <Option value="Shift">Shift</Option>
+                <Option value="Alt">Alt</Option>
+                <Option value="Meta">Meta (Win/Cmd)</Option>
+              </Select>
+              <span className="hint">（例如 Ctrl+A 全选、Ctrl+C 复制）</span>
+            </div>
+
+            <div className="form-item">
+              <label>按键次数：</label>
+              <InputNumber
+                min={1}
+                max={100}
+                value={keyboardConfig.pressCount}
+                onChange={(value) => handleUpdateConfig({ pressCount: value || 1 })}
+                style={{ width: 120 }}
+              />
+            </div>
+          </div>
+        );
+
+      case 'elementMethod':
+        const methodConfig = step.config as ElementMethodConfig;
+        return (
+          <div className="config-form">
+            <div className="form-item">
+              <label>CSS 选择器：</label>
+              <Input
+                placeholder="例如：#search-input 或 .btn-submit"
+                value={methodConfig.selector}
+                onChange={(e) => handleUpdateConfig({ selector: e.target.value })}
+              />
+              <span className="hint">（要调用方法的页面元素）</span>
+            </div>
+
+            <div className="form-item">
+              <label>方法名：</label>
+              <AutoComplete
+                options={[
+                  { value: 'focus', label: 'focus() — 聚焦元素' },
+                  { value: 'blur', label: 'blur() — 失去焦点' },
+                  { value: 'click', label: 'click() — 单击' },
+                  { value: 'dblclick', label: 'dblclick() — 双击' },
+                  { value: 'scrollIntoView', label: 'scrollIntoView() — 滚动到可见' },
+                  { value: 'select', label: 'select() — 选中内容' },
+                  { value: 'submit', label: 'submit() — 提交表单' },
+                  { value: 'reset', label: 'reset() — 重置表单' },
+                  { value: 'remove', label: 'remove() — 删除元素' },
+                  { value: 'play', label: 'play() — 播放媒体' },
+                  { value: 'pause', label: 'pause() — 暂停媒体' },
+                  { value: 'reportValidity', label: 'reportValidity() — 校验表单' },
+                ]}
+                placeholder="选择或输入方法名"
+                value={methodConfig.method}
+                onChange={(value) => handleUpdateConfig({ method: value })}
+                style={{ width: '100%' }}
+                allowClear
+              />
+              <span className="hint">（常用 DOM 方法，也可输入自定义方法名）</span>
+            </div>
+
+            <div className="form-item">
+              <label>方法参数（可选）：</label>
+              <Input
+                placeholder='例如：{ "behavior": "smooth" } 或留空'
+                value={methodConfig.args}
+                onChange={(e) => handleUpdateConfig({ args: e.target.value })}
+              />
+              <span className="hint">（JSON 格式，如 scrollIntoView 可传 <code>{'{ "behavior": "smooth" }'}</code>）</span>
+            </div>
+
+            <div className="form-item">
+              <label>调用后等待（秒）：</label>
+              <InputNumber
+                min={0}
+                max={30}
+                value={methodConfig.waitAfter}
+                onChange={(value) => handleUpdateConfig({ waitAfter: value || 0 })}
+                style={{ width: 120 }}
+              />
+              <span className="hint">（方法执行后等待的秒数，0 表示不等待）</span>
+            </div>
+          </div>
+        );
+
+      case 'variableOperation':
+        const varOpConfig = step.config as VariableOperationConfig;
+        const needsOperand = ['template', 'math', 'regex', 'regexReplace', 'replace', 'split', 'join', 'default'].includes(varOpConfig.operation);
+        const needsOperand2 = ['regexReplace', 'replace'].includes(varOpConfig.operation);
+        const needsSource = !['template'].includes(varOpConfig.operation);
+
+        // 操作参数标签映射
+        const operandLabels: Record<string, string> = {
+          template: '模板表达式',
+          math: '运算符与数值',
+          regex: '正则表达式',
+          regexReplace: '正则表达式',
+          replace: '查找内容',
+          split: '分隔符',
+          join: '连接符',
+          default: '默认值',
+        };
+        const operandPlaceholders: Record<string, string> = {
+          template: '例如：Hello ${name}, 价格：${price}',
+          math: '例如：+ 10 或 * 2 或 / 3',
+          regex: '例如：\\d+ 或 (https?://[^\\s]+)',
+          regexReplace: '例如：\\d+',
+          replace: '要替换的字符串',
+          split: '例如：, 或 \\n 或 |',
+          join: '例如：, 或 - 或 空格',
+          default: '当变量不存在时使用的默认值',
+        };
+
+        return (
+          <div className="config-form">
+            <div className="form-item">
+              <label>操作类型：</label>
+              <Select
+                value={varOpConfig.operation}
+                onChange={(value) => handleUpdateConfig({ operation: value })}
+                style={{ width: '100%' }}
+              >
+                <Option value="template">📝 模板拼接</Option>
+                <Option value="math">🔢 数学运算</Option>
+                <Option value="jsonParse">📥 JSON 解析（字符串→对象）</Option>
+                <Option value="jsonStringify">📤 JSON 字符串化（对象→字符串）</Option>
+                <Option value="regex">🔍 正则提取</Option>
+                <Option value="regexReplace">🔄 正则替换</Option>
+                <Option value="replace">✂️ 字符串替换</Option>
+                <Option value="split">📊 字符串分割为数组</Option>
+                <Option value="join">📊 数组合并为字符串</Option>
+                <Option value="length">📏 取长度</Option>
+                <Option value="default">🔀 设置默认值</Option>
+              </Select>
+            </div>
+
+            {varOpConfig.operation === 'template' ? (
+              <div className="form-item">
+                <label>模板表达式：</label>
+                <Input.TextArea
+                  rows={3}
+                  placeholder="例如：Hello ${name}, 价格：${price} 元"
+                  value={varOpConfig.operand}
+                  onChange={(e) => handleUpdateConfig({ operand: e.target.value })}
+                />
+                <span className="hint">（使用 <code>{'${变量名}'}</code> 插入变量值，支持多个变量拼接）</span>
+              </div>
+            ) : (
+              <>
+                {needsSource && (
+                  <div className="form-item">
+                    <label>源变量名：</label>
+                    <Input
+                      placeholder="例如：productPrice"
+                      value={varOpConfig.sourceVariable}
+                      onChange={(e) => handleUpdateConfig({ sourceVariable: e.target.value })}
+                    />
+                    <span className="hint">（要操作的变量名）</span>
+                  </div>
+                )}
+
+                {needsOperand && (
+                  <div className="form-item">
+                    <label>{operandLabels[varOpConfig.operation] || '操作参数'}：</label>
+                    <Input
+                      placeholder={operandPlaceholders[varOpConfig.operation] || ''}
+                      value={varOpConfig.operand}
+                      onChange={(e) => handleUpdateConfig({ operand: e.target.value })}
+                    />
+                    {varOpConfig.operation === 'math' && (
+                      <span className="hint">（格式：运算符 + 空格 + 数值，如 <code>+ 10</code>、<code>* 2</code>、<code>% 3</code>）</span>
+                    )}
+                    {varOpConfig.operation === 'regex' && (
+                      <span className="hint">（提取第一个匹配组或整个匹配，支持变量引用）</span>
+                    )}
+                  </div>
+                )}
+
+                {needsOperand2 && (
+                  <div className="form-item">
+                    <label>替换为：</label>
+                    <Input
+                      placeholder="替换后的内容（支持变量引用）"
+                      value={varOpConfig.operand2}
+                      onChange={(e) => handleUpdateConfig({ operand2: e.target.value })}
+                    />
+                  </div>
+                )}
+              </>
+            )}
+
+            <div className="form-item">
+              <label>结果存入变量名：</label>
+              <Input
+                placeholder="例如：formattedPrice"
+                value={varOpConfig.resultVariable}
+                onChange={(e) => handleUpdateConfig({ resultVariable: e.target.value })}
+              />
+              <span className="hint">（操作结果将存入此变量，后续步骤可用 <code>{'${变量名}'}</code> 引用）</span>
+            </div>
+          </div>
+        );
+
+      case 'dingTalkNotify':
+        const dingConfig = step.config as DingTalkNotifyConfig;
+        return (
+          <div className="config-form">
+            <div className="form-item">
+              <label>Webhook Access Token：</label>
+              <Input.Password
+                placeholder="输入钉钉机器人的 access_token"
+                value={dingConfig.accessToken}
+                onChange={(e) => handleUpdateConfig({ accessToken: e.target.value })}
+              />
+              <span className="hint">（在钉钉群设置 → 智能群助手 → 添加机器人 → Webhook 中获取）</span>
+            </div>
+
+            <div className="form-item">
+              <label>消息类型：</label>
+              <Select
+                value={dingConfig.msgType}
+                onChange={(value) => handleUpdateConfig({ msgType: value })}
+                style={{ width: '100%' }}
+              >
+                <Option value="text">文本消息（text）</Option>
+                <Option value="markdown">Markdown 消息</Option>
+              </Select>
+            </div>
+
+            {dingConfig.msgType === 'markdown' && (
+              <div className="form-item">
+                <label>消息标题：</label>
+                <Input
+                  placeholder="例如：爬虫执行报告"
+                  value={dingConfig.title}
+                  onChange={(e) => handleUpdateConfig({ title: e.target.value })}
+                />
+              </div>
+            )}
+
+            <div className="form-item">
+              <label>消息内容：</label>
+              <Input.TextArea
+                rows={dingConfig.msgType === 'markdown' ? 8 : 4}
+                placeholder={dingConfig.msgType === 'markdown'
+                  ? '支持 Markdown 格式，例如：\n## 爬虫执行报告\n- 采集数量：**${count}** 条\n- 执行时间：${time}'
+                  : '输入消息内容，支持变量引用，如：采集完成，共 ${count} 条数据'
+                }
+                value={dingConfig.content}
+                onChange={(e) => handleUpdateConfig({ content: e.target.value })}
+                style={dingConfig.msgType === 'markdown' ? { fontFamily: 'Monaco, Consolas, monospace', fontSize: '13px' } : {}}
+              />
+              <span className="hint">（使用 <code>{'${变量名}'}</code> 插入变量值）</span>
+            </div>
+          </div>
+        );
+
       default:
         return null;
     }
@@ -729,9 +1166,10 @@ const StepCard: React.FC<StepCardProps> = ({ step, index, total, parentId }) => 
 
   return (
     <Card
-      className="step-card"
+      className={`step-card ${step.disabled ? 'step-card-disabled' : ''}`}
       style={{ 
         animation: `slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${index * 0.1}s both`,
+        opacity: step.disabled ? 0.5 : 1,
       }}
       title={
         <div className="step-card-header">
@@ -789,6 +1227,52 @@ const StepCard: React.FC<StepCardProps> = ({ step, index, total, parentId }) => 
       }
     >
       {renderConfigForm()}
+
+      {/* 步骤备注 & 打印日志 */}
+      <div className="step-extra-options">
+        <div className="step-extra-row">
+          <Button
+            type="text"
+            size="small"
+            icon={<FormOutlined />}
+            className={`remark-toggle-btn ${step.remark ? 'has-remark' : ''}`}
+            onClick={() => setRemarkVisible(!remarkVisible)}
+          >
+            备注{step.remark ? ' ✓' : ''}
+          </Button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div className="log-print-switch">
+              <span className="log-label">禁用</span>
+              <Switch
+                size="small"
+                checked={step.disabled || false}
+                onChange={(checked) => handleUpdateStepField('disabled', checked)}
+                checkedChildren="开"
+                unCheckedChildren="关"
+              />
+            </div>
+            <div className="log-print-switch">
+              <span className="log-label">打印日志</span>
+              <Switch
+                size="small"
+                checked={step.logPrint || false}
+                onChange={(checked) => handleUpdateStepField('logPrint', checked)}
+              />
+            </div>
+          </div>
+        </div>
+        {remarkVisible && (
+          <div className="remark-input-wrapper">
+            <Input.TextArea
+              size="small"
+              rows={2}
+              placeholder="输入步骤备注说明…"
+              value={step.remark || ''}
+              onChange={(e) => handleUpdateStepField('remark', e.target.value)}
+            />
+          </div>
+        )}
+      </div>
     </Card>
   );
 };

@@ -129,3 +129,86 @@
     width: 100% !important;
   }
 }
+
+/* 步骤备注 & 打印日志 */
+.step-extra-options {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed #f0f0f0;
+}
+
+.step-extra-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.remark-toggle-btn {
+  color: #8c8c8c !important;
+  font-size: 12px;
+}
+
+.remark-toggle-btn.has-remark {
+  color: #1890ff !important;
+}
+
+.log-print-switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.log-label {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.remark-input-wrapper {
+  margin-top: 8px;
+}
+
+.remark-input-wrapper .ant-input {
+  font-size: 12px;
+  resize: none;
+}
+
+/* 禁用状态 */
+.step-card-disabled {
+  border-color: #d9a3a3 !important;
+  box-shadow: 0 2px 6px rgba(180, 120, 120, 0.1) !important;
+}
+
+.step-card-disabled:hover {
+  box-shadow: 0 4px 10px rgba(180, 120, 120, 0.15) !important;
+}
+
+.step-card-disabled .ant-card-head {
+  background: #fafafa !important;
+}
+
+.step-card-disabled .step-title {
+  text-decoration: line-through;
+  color: #bfbfbf;
+}
+
+.step-card-disabled .config-form {
+  pointer-events: none;
+  user-select: none;
+}
+
+.step-card-disabled .ant-card-body {
+  position: relative;
+}
+
+.step-card-disabled .ant-card-body::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(217, 163, 163, 0.15);
+  border-radius: 0 0 8px 8px;
+  pointer-events: none;
+  z-index: 1;
+}

@@ -2,10 +2,8 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useStore } from '../../store/useStore';
 import { exportFolderToConfig, previewJsonString } from '../../utils/exportFlow';
 import StepCard from './StepCard';
-import { PlusOutlined, FolderOpenOutlined, CopyOutlined, EditOutlined, DownOutlined, UpOutlined, GlobalOutlined, AimOutlined, ClockCircleOutlined, FileTextOutlined, LinkOutlined, CodeOutlined, ApiOutlined, BranchesOutlined, SyncOutlined, QuestionCircleOutlined, BookOutlined, StopOutlined, PlayCircleOutlined, ImportOutlined } from '@ant-design/icons';
-import { Button, Modal, Tree, message, Input } from 'antd';
-import type { TreeProps } from 'antd';
-import type { DataNode } from 'antd/es/tree';
+import { PlusOutlined, FolderOpenOutlined, CopyOutlined, EditOutlined, DownOutlined, UpOutlined, GlobalOutlined, AimOutlined, ClockCircleOutlined, FileTextOutlined, LinkOutlined, CodeOutlined, ApiOutlined, BranchesOutlined, SyncOutlined, QuestionCircleOutlined, BookOutlined, StopOutlined, PlayCircleOutlined, ImportOutlined, DatabaseOutlined, EnterOutlined, ThunderboltOutlined, FunctionOutlined, BellOutlined } from '@ant-design/icons';
+import { Button, Modal, message, Input } from 'antd';
 import './FlowEditor.css';
 
 const FlowEditor: React.FC = () => {
@@ -59,195 +57,9 @@ const FlowEditor: React.FC = () => {
     .sort((a, b) => a.order - b.order);
 
   // 添加步骤
-  const handleAddStep = (type: 'openUrl' | 'clickElement' | 'wait' | 'getText' | 'getAttribute' | 'setAttribute' | 'httpRequest' | 'jsonExtract' | 'loop' | 'interceptRequest') => {
+  const handleAddStep = (type: 'openUrl' | 'clickElement' | 'wait' | 'getText' | 'getAttribute' | 'setAttribute' | 'httpRequest' | 'jsonExtract' | 'loop' | 'interceptRequest' | 'executeScript' | 'localStorage' | 'keyboardAction' | 'elementMethod' | 'variableOperation' | 'dingTalkNotify') => {
     if (!selectedFolderId) return;
     addStep(selectedFolderId, type);
-  };
-
-  // 树形分类数据
-  const stepTreeData: DataNode[] = [
-    {
-      title: '🌐 导航',
-      key: 'nav',
-      selectable: false,
-      children: [
-        {
-          title: (
-            <div className="tree-step-item">
-              <GlobalOutlined className="tree-step-icon" />
-              <div className="tree-step-info">
-                <span className="tree-step-name">打开网址</span>
-                <span className="tree-step-desc">访问指定 URL 页面</span>
-              </div>
-            </div>
-          ),
-          key: 'openUrl',
-          isLeaf: true,
-        },
-      ],
-    },
-    {
-      title: '👆 交互',
-      key: 'interact',
-      selectable: false,
-      children: [
-        {
-          title: (
-            <div className="tree-step-item">
-              <AimOutlined className="tree-step-icon" />
-              <div className="tree-step-info">
-                <span className="tree-step-name">点击元素</span>
-                <span className="tree-step-desc">点击页面上的元素</span>
-              </div>
-            </div>
-          ),
-          key: 'clickElement',
-          isLeaf: true,
-        },
-      ],
-    },
-    {
-      title: '⏱️ 控制',
-      key: 'control',
-      selectable: false,
-      children: [
-        {
-          title: (
-            <div className="tree-step-item">
-              <ClockCircleOutlined className="tree-step-icon" />
-              <div className="tree-step-info">
-                <span className="tree-step-name">等待</span>
-                <span className="tree-step-desc">等待指定秒数</span>
-              </div>
-            </div>
-          ),
-          key: 'wait',
-          isLeaf: true,
-        },
-        {
-          title: (
-            <div className="tree-step-item">
-              <SyncOutlined className="tree-step-icon" />
-              <div className="tree-step-info">
-                <span className="tree-step-name">循环</span>
-                <span className="tree-step-desc">按次数、元素或变量数据循环</span>
-              </div>
-            </div>
-          ),
-          key: 'loop',
-          isLeaf: true,
-        },
-      ],
-    },
-    {
-      title: '✍️ 操作',
-      key: 'operate',
-      selectable: false,
-      children: [
-        {
-          title: (
-            <div className="tree-step-item">
-              <EditOutlined className="tree-step-icon" />
-              <div className="tree-step-info">
-                <span className="tree-step-name">设置属性</span>
-                <span className="tree-step-desc">给元素属性赋值（支持变量）</span>
-              </div>
-            </div>
-          ),
-          key: 'setAttribute',
-          isLeaf: true,
-        },
-      ],
-    },
-    {
-      title: '📄 采集',
-      key: 'collect',
-      selectable: false,
-      children: [
-        {
-          title: (
-            <div className="tree-step-item">
-              <FileTextOutlined className="tree-step-icon" />
-              <div className="tree-step-info">
-                <span className="tree-step-name">获取文本</span>
-                <span className="tree-step-desc">抓取元素 innerText / innerHTML</span>
-              </div>
-            </div>
-          ),
-          key: 'getText',
-          isLeaf: true,
-        },
-        {
-          title: (
-            <div className="tree-step-item">
-              <LinkOutlined className="tree-step-icon" />
-              <div className="tree-step-info">
-                <span className="tree-step-name">获取属性</span>
-                <span className="tree-step-desc">提取 href、src、value 等属性值</span>
-              </div>
-            </div>
-          ),
-          key: 'getAttribute',
-          isLeaf: true,
-        },
-      ],
-    },
-    {
-      title: '🌐 网络',
-      key: 'network',
-      selectable: false,
-      children: [
-        {
-          title: (
-            <div className="tree-step-item">
-              <ApiOutlined className="tree-step-icon" />
-              <div className="tree-step-info">
-                <span className="tree-step-name">HTTP 请求</span>
-                <span className="tree-step-desc">请求 API 接口（GET/POST）</span>
-              </div>
-            </div>
-          ),
-          key: 'httpRequest',
-          isLeaf: true,
-        },
-        {
-          title: (
-            <div className="tree-step-item">
-              <BranchesOutlined className="tree-step-icon" />
-              <div className="tree-step-info">
-                <span className="tree-step-name">JSON 提取</span>
-                <span className="tree-step-desc">用 JSONPath 从变量中提取数据</span>
-              </div>
-            </div>
-          ),
-          key: 'jsonExtract',
-          isLeaf: true,
-        },
-        {
-          title: (
-            <div className="tree-step-item">
-              <StopOutlined className="tree-step-icon" />
-              <div className="tree-step-info">
-                <span className="tree-step-name">拦截请求</span>
-                <span className="tree-step-desc">拦截并修改请求/响应数据</span>
-              </div>
-            </div>
-          ),
-          key: 'interceptRequest',
-          isLeaf: true,
-        },
-      ],
-    },
-  ];
-
-  // 树节点选择回调
-  const handleTreeSelect: TreeProps['onSelect'] = (selectedKeys) => {
-    const key = selectedKeys[0] as string;
-    const validTypes = ['openUrl', 'clickElement', 'wait', 'getText', 'getAttribute', 'setAttribute', 'httpRequest', 'jsonExtract', 'loop', 'interceptRequest'];
-    if (validTypes.includes(key)) {
-      handleAddStep(key as 'openUrl' | 'clickElement' | 'wait' | 'getText' | 'getAttribute' | 'setAttribute' | 'httpRequest' | 'jsonExtract' | 'loop' | 'interceptRequest');
-      setStepModalVisible(false);
-    }
   };
 
   // 提取变量列表（递归处理子步骤）
@@ -310,6 +122,28 @@ const FlowEditor: React.FC = () => {
             stepIndex: currentIndex,
             stepType: '拦截请求',
             description: `${config.method} ${config.urlPattern || '...'}`,
+          });
+        }
+      } else if (step.type === 'executeScript') {
+        // 注入 JS 不产生变量
+      } else if (step.type === 'variableOperation') {
+        const config = step.config as any;
+        if (config.resultVariable) {
+          varList.push({
+            name: config.resultVariable,
+            stepIndex: currentIndex,
+            stepType: '变量操作',
+            description: config.operation || '操作结果',
+          });
+        }
+      } else if (step.type === 'localStorage') {
+        const config = step.config as any;
+        if (config.action === 'get' && config.variableName) {
+          varList.push({
+            name: config.variableName,
+            stepIndex: currentIndex,
+            stepType: '本地存储',
+            description: `读取 ${config.key || '...'}`,
           });
         }
       } else if (step.type === 'loop') {
@@ -565,6 +399,12 @@ const FlowEditor: React.FC = () => {
       'jsonExtract': 'jsonExtract',
       'loop': 'loop',
       'interceptRequest': 'interceptRequest',
+      'executeScript': 'executeScript',
+      'localStorage': 'localStorage',
+      'keyboardAction': 'keyboardAction',
+      'elementMethod': 'elementMethod',
+      'variableOperation': 'variableOperation',
+      'dingTalkNotify': 'dingTalkNotify',
     };
     return mapping[action] || null;
   };
@@ -643,6 +483,53 @@ const FlowEditor: React.FC = () => {
           continueRequest: data.continueRequest !== false,
         };
       
+      case 'executeScript':
+        return {
+          script: data.script || '',
+        };
+      
+      case 'localStorage':
+        return {
+          key: data.key || '',
+          value: data.value || '',
+          storageType: data.storageType || 'local',
+          action: data.action || 'set',
+          variableName: data.variableName || '',
+        };
+      
+      case 'keyboardAction':
+        return {
+          key: data.key || 'Enter',
+          selector: data.selector || '',
+          modifiers: data.modifiers || [],
+          pressCount: data.pressCount || 1,
+        };
+      
+      case 'elementMethod':
+        return {
+          selector: data.selector || '',
+          method: data.method || 'focus',
+          args: data.args || '',
+          waitAfter: data.waitAfter || 0,
+        };
+
+      case 'variableOperation':
+        return {
+          operation: data.operation || 'template',
+          sourceVariable: data.sourceVariable || '',
+          resultVariable: data.resultVariable || '',
+          operand: data.operand || '',
+          operand2: data.operand2 || '',
+        };
+
+      case 'dingTalkNotify':
+        return {
+          accessToken: data.accessToken || '',
+          msgType: data.msgType || 'text',
+          title: data.title || '',
+          content: data.content || '',
+        };
+      
       default:
         return {};
     }
@@ -706,17 +593,82 @@ const FlowEditor: React.FC = () => {
         open={stepModalVisible}
         onCancel={() => setStepModalVisible(false)}
         footer={null}
-        width={480}
+        width={640}
         centered
         className="step-type-modal"
       >
-        <Tree
-          treeData={stepTreeData}
-          onSelect={handleTreeSelect}
-          defaultExpandAll
-          blockNode
-          className="step-type-tree"
-        />
+        <div className="step-type-grid">
+          {[
+            {
+              title: '🌐 导航',
+              items: [
+                { key: 'openUrl', icon: <GlobalOutlined />, name: '打开网址', desc: '访问指定 URL' },
+              ],
+            },
+            {
+              title: '👆 交互',
+              items: [
+                { key: 'clickElement', icon: <AimOutlined />, name: '点击元素', desc: '点击页面元素' },
+                { key: 'setAttribute', icon: <EditOutlined />, name: '设置属性', desc: '给元素属性赋值' },
+                { key: 'keyboardAction', icon: <EnterOutlined />, name: '键盘操作', desc: '模拟按键 Enter/Tab 等' },
+                { key: 'elementMethod', icon: <ThunderboltOutlined />, name: '调用方法', desc: 'focus/dblclick 等' },
+              ],
+            },
+            {
+              title: '📄 采集',
+              items: [
+                { key: 'getText', icon: <FileTextOutlined />, name: '获取文本', desc: '提取元素文本/HTML' },
+                { key: 'getAttribute', icon: <LinkOutlined />, name: '获取属性', desc: '提取 href、src 等' },
+              ],
+            },
+            {
+              title: '⏱️ 控制',
+              items: [
+                { key: 'wait', icon: <ClockCircleOutlined />, name: '等待', desc: '等待指定秒数' },
+                { key: 'loop', icon: <SyncOutlined />, name: '循环', desc: '按次数/元素/变量循环' },
+              ],
+            },
+            {
+              title: '🌐 网络',
+              items: [
+                { key: 'httpRequest', icon: <ApiOutlined />, name: 'HTTP 请求', desc: 'GET/POST 等' },
+                { key: 'jsonExtract', icon: <BranchesOutlined />, name: 'JSON 提取', desc: 'JSONPath 提取' },
+                { key: 'interceptRequest', icon: <StopOutlined />, name: '拦截请求', desc: '拦截并修改请求' },
+              ],
+            },
+            {
+              title: '⚙️ 高级',
+              items: [
+                { key: 'executeScript', icon: <CodeOutlined />, name: '注入 JS', desc: '注入 JS 代码' },
+                { key: 'localStorage', icon: <DatabaseOutlined />, name: '本地存储', desc: '保存/读取变量' },
+                { key: 'variableOperation', icon: <FunctionOutlined />, name: '变量操作', desc: '拼接/运算/转换' },
+                { key: 'dingTalkNotify', icon: <BellOutlined />, name: '钉钉推送', desc: 'Webhook 发消息' },
+              ],
+            },
+          ].map((group) => (
+            <div key={group.title} className="step-type-group">
+              <div className="step-type-group-title">{group.title}</div>
+              <div className="step-type-cards">
+                {group.items.map((item) => (
+                  <div
+                    key={item.key}
+                    className="step-type-card"
+                    onClick={() => {
+                      handleAddStep(item.key as any);
+                      setStepModalVisible(false);
+                    }}
+                  >
+                    <span className="step-type-card-icon">{item.icon}</span>
+                    <div className="step-type-card-info">
+                      <span className="step-type-card-name">{item.name}</span>
+                      <span className="step-type-card-desc">{item.desc}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </Modal>
 
       <div className="flow-editor-content">

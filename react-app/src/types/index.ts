@@ -12,15 +12,18 @@ export interface Step {
   id: string;
   folderId: string;
   order: number;                          // 执行顺序
-  type: 'openUrl' | 'clickElement' | 'wait' | 'getText' | 'getAttribute' | 'setAttribute' | 'httpRequest' | 'jsonExtract' | 'loop' | 'interceptRequest';
+  type: 'openUrl' | 'clickElement' | 'wait' | 'getText' | 'getAttribute' | 'setAttribute' | 'httpRequest' | 'jsonExtract' | 'loop' | 'interceptRequest' | 'executeScript' | 'localStorage' | 'keyboardAction' | 'elementMethod' | 'variableOperation' | 'dingTalkNotify';
   name: string;                           // 步骤名称
   config: StepConfig;
+  remark?: string;                        // 步骤备注
+  logPrint?: boolean;                     // 执行时打印日志
+  disabled?: boolean;                     // 禁用步骤（执行时跳过）
   createdAt: number;
   updatedAt: number;
 }
 
 // 步骤配置类型
-export type StepConfig = OpenUrlConfig | ClickElementConfig | WaitConfig | GetTextConfig | GetAttributeConfig | SetAttributeConfig | HttpRequestConfig | JsonExtractConfig | LoopConfig | InterceptRequestConfig;
+export type StepConfig = OpenUrlConfig | ClickElementConfig | WaitConfig | GetTextConfig | GetAttributeConfig | SetAttributeConfig | HttpRequestConfig | JsonExtractConfig | LoopConfig | InterceptRequestConfig | ExecuteScriptConfig | LocalStorageConfig | KeyboardActionConfig | ElementMethodConfig | VariableOperationConfig | DingTalkNotifyConfig;
 
 // 打开网址配置
 export interface OpenUrlConfig {
@@ -106,6 +109,53 @@ export interface InterceptRequestConfig {
   continueRequest: boolean;               // 是否继续请求（false 表示直接返回修改后的响应）
 }
 
+// 注入 JS 配置
+export interface ExecuteScriptConfig {
+  script: string;                         // JavaScript 代码
+}
+
+// 本地存储配置
+export interface LocalStorageConfig {
+  key: string;                            // 存储键名
+  value: string;                          // 存储值（支持变量引用）
+  storageType: 'local' | 'session';       // 本地存储或会话存储
+  action: 'set' | 'get';                  // 写入或读取
+  variableName: string;                   // 读取时存入的变量名（action=get 时使用）
+}
+
+// 键盘操作配置
+export interface KeyboardActionConfig {
+  key: string;                            // 按键名（Enter, Tab, Escape 等）
+  selector: string;                       // 目标元素选择器（可选，先聚焦再按键）
+  modifiers: string[];                    // 修饰键（Ctrl, Shift, Alt, Meta）
+  pressCount: number;                     // 按键次数
+}
+
+// 调用元素方法配置
+export interface ElementMethodConfig {
+  selector: string;                       // CSS 选择器
+  method: string;                         // 方法名（focus, dblclick, scrollIntoView 等）
+  args: string;                           // 方法参数（可选，JSON 格式）
+  waitAfter: number;                      // 调用后等待秒数
+}
+
+// 变量操作配置
+export interface VariableOperationConfig {
+  operation: 'template' | 'math' | 'jsonParse' | 'jsonStringify' | 'regex' | 'regexReplace' | 'replace' | 'split' | 'join' | 'length' | 'default';
+  sourceVariable: string;                // 源变量名
+  resultVariable: string;               // 结果存入的变量名
+  operand: string;                       // 操作参数（模板/正则/运算符/分隔符等）
+  operand2: string;                      // 第二参数（替换目标等）
+}
+
+// 钉钉推送配置
+export interface DingTalkNotifyConfig {
+  accessToken: string;                   // Webhook access_token
+  msgType: 'text' | 'markdown';          // 消息类型
+  title: string;                          // 标题（markdown 时使用）
+  content: string;                        // 消息内容模板（支持 ${变量}）
+}
+
 // 步骤类型选项
 export const STEP_TYPES = {
   openUrl: '打开网址',
@@ -118,6 +168,12 @@ export const STEP_TYPES = {
   jsonExtract: 'JSON 提取',
   loop: '循环',
   interceptRequest: '拦截请求',
+  executeScript: '注入 JS',
+  localStorage: '本地存储',
+  keyboardAction: '键盘操作',
+  elementMethod: '调用方法',
+  variableOperation: '变量操作',
+  dingTalkNotify: '钉钉推送',
 } as const;
 
 // 选择器类型选项

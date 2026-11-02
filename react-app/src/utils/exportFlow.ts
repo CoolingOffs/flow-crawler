@@ -6,7 +6,8 @@ import { Folder, Step, ExportedFlowConfig, ExportedTaskGroup, ExportedAction, Ex
 const convertStepToCommand = (step: Step): ExportedCommand => {
   const { type, config } = step;
 
-  switch (type) {
+  const getCommandData = (): { action: string; data: Record<string, any> } => {
+    switch (type) {
     case 'openUrl':
       const urlConfig = config as { url: string };
       return {
@@ -228,12 +229,128 @@ const convertStepToCommand = (step: Step): ExportedCommand => {
         },
       };
 
+    case 'executeScript':
+      const scriptConfig = config as {
+        script: string;
+      };
+      return {
+        action: 'executeScript',
+        data: {
+          script: scriptConfig.script,
+        },
+      };
+
+    case 'localStorage':
+      const storageConfig = config as {
+        key: string;
+        value: string;
+        storageType: 'local' | 'session';
+        action: 'set' | 'get';
+        variableName: string;
+      };
+      return {
+        action: 'localStorage',
+        data: {
+          key: storageConfig.key,
+          value: storageConfig.value,
+          storageType: storageConfig.storageType,
+          action: storageConfig.action,
+          variableName: storageConfig.variableName,
+        },
+      };
+
+    case 'keyboardAction':
+      const keyboardConfig = config as {
+        key: string;
+        selector: string;
+        modifiers: string[];
+        pressCount: number;
+      };
+      return {
+        action: 'keyboardAction',
+        data: {
+          key: keyboardConfig.key,
+          selector: keyboardConfig.selector,
+          modifiers: keyboardConfig.modifiers,
+          pressCount: keyboardConfig.pressCount,
+        },
+      };
+
+    case 'elementMethod':
+      const elementMethodConfig = config as {
+        selector: string;
+        method: string;
+        args: string;
+        waitAfter: number;
+      };
+      return {
+        action: 'elementMethod',
+        data: {
+          selector: elementMethodConfig.selector,
+          method: elementMethodConfig.method,
+          args: elementMethodConfig.args,
+          waitAfter: elementMethodConfig.waitAfter,
+        },
+      };
+
+    case 'variableOperation':
+      const varOpConfig = config as {
+        operation: string;
+        sourceVariable: string;
+        resultVariable: string;
+        operand: string;
+        operand2: string;
+      };
+      return {
+        action: 'variableOperation',
+        data: {
+          operation: varOpConfig.operation,
+          sourceVariable: varOpConfig.sourceVariable,
+          resultVariable: varOpConfig.resultVariable,
+          operand: varOpConfig.operand,
+          operand2: varOpConfig.operand2,
+        },
+      };
+
+    case 'dingTalkNotify':
+      const dingConfig = config as {
+        accessToken: string;
+        msgType: 'text' | 'markdown';
+        title: string;
+        content: string;
+      };
+      return {
+        action: 'dingTalkNotify',
+        data: {
+          accessToken: dingConfig.accessToken,
+          msgType: dingConfig.msgType,
+          title: dingConfig.title,
+          content: dingConfig.content,
+        },
+      };
+
     default:
       return {
         action: 'unknown',
         data: {},
       };
   }
+  };
+
+  const cmd = getCommandData();
+
+  // 附带备注、打印日志和禁用状态
+  if (step.remark) {
+    cmd.data._remark = step.remark;
+  }
+  if (step.logPrint) {
+    cmd.data._logPrint = true;
+  }
+  if (step.disabled) {
+    cmd.data._disabled = true;
+  }
+
+  return cmd;
 };
 
 /**
