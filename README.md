@@ -2,7 +2,7 @@
 
 > 一个基于 JSON 的可视化爬虫流程编辑器，通过拖拽配置完成复杂的网页自动化任务
 
-![版本](https://img.shields.io/badge/版本-1.2.0-blue)
+![版本](https://img.shields.io/badge/版本-1.3.0-blue)
 ![状态](https://img.shields.io/badge/状态-正在更新中-yellow)
 ![技术栈](https://img.shields.io/badge/技术栈-React%20+%20Python%20+%20Playwright-green)
 ![License](https://img.shields.io/badge/License-MIT-green)
@@ -21,6 +21,59 @@
 - ✅ **数据拦截**：支持拦截和修改 HTTP 请求
 - ✅ **循环处理**：支持按次数、按元素、按变量三种循环方式
 - ✅ **导入导出**：支持 JSON 配置的导入、导出和回填
+
+---
+
+## 🗂️ 项目目录结构
+
+整个项目分为前端和后端两个独立目录，各自负责不同职责：
+
+![项目目录结构](docs/images/project-structure.png)
+
+```
+flow-crawler/
+├── python-backend/          # Python 后端 - Playwright 执行引擎
+│   ├── app/
+│   │   ├── api/             # FastAPI 接口层
+│   │   │   └── server.py    # API 路由与服务器配置
+│   │   ├── core/            # 核心执行逻辑
+│   │   │   ├── command_handler.py  # 步骤命令分发
+│   │   │   ├── executor.py         # 流程执行器
+│   │   │   ├── variable_manager.py # 变量管理器
+│   │   │   └── logger.py           # 日志模块
+│   │   ├── models/          # 数据模型
+│   │   └── utils/           # 工具函数
+│   ├── data/
+│   │   ├── flows/           # 流程配置 JSON 存储
+│   │   └── outputs/         # 执行输出文件
+│   ├── main.py              # 启动入口
+│   ├── server.py            # 服务器启动脚本
+│   └── requirements.txt     # Python 依赖清单
+│
+└── react-app/               # React 前端 - 可视化图编辑器
+    └── src/
+        ├── components/
+        │   ├── FolderTree/  # 文件夹树组件
+        │   └── GraphEditor/ # 图编辑器核心组件
+        │       ├── GraphEditor.tsx      # 画布主组件
+        │       ├── StepNode.tsx         # 自定义节点组件
+        │       ├── NodePalette.tsx      # 节点拖拽面板
+        │       └── NodeConfigPanel.tsx  # 右侧配置面板
+        ├── store/           # Zustand 状态管理
+        │   └── useStore.ts
+        ├── types/           # TypeScript 类型定义
+        │   ├── index.ts     # 步骤配置类型
+        │   └── graph.ts     # 图编辑器节点/边类型
+        ├── utils/           # 工具函数
+        │   ├── exportFlow.ts    # 导出配置（含拓扑排序）
+        │   ├── storage.ts       # 本地持久化
+        │   └── migrateData.ts   # 旧数据迁移工具
+        └── App.tsx          # 应用入口
+```
+
+**目录职责：**
+- `python-backend/`：负责接收 JSON 配置并使用 Playwright 执行浏览器自动化流程
+- `react-app/`：提供基于 React Flow 的可视化图编辑器，支持节点拖拽、连线和实时预览
 
 ---
 
@@ -714,6 +767,21 @@ GET /health
 ---
 
 ## 📝 更新日志
+
+### v1.3.0 (2026-11-02)
+
+- ✅ **架构升级**：线性步骤编辑器迁移为基于 **React Flow** 的节点连线图编辑器
+- ✅ 引入 **@xyflow/react** 画布引擎，支持节点自由拖拽和上下连线
+- ✅ 每个文件夹对应一个**独立画布页**，互不干扰
+- ✅ 自定义 **StepNode** 节点组件，左上角显示拓扑编号徽章
+- ✅ 新增左侧 **节点面板（NodePalette）**，6 大分类拖拽到画布创建节点
+- ✅ 新增右侧 **配置面板（NodeConfigPanel）**，16 种步骤配置表单
+- ✅ 新增右下角 **JSON 预览**，支持展开/收起和一键复制
+- ✅ 连线规则：每个节点只能一入一出，**防环检测** + **禁止自连**
+- ✅ **双击连线** 删除连线，防止键盘误删
+- ✅ **禁用节点** 时自动移除关联连线
+- ✅ **旧数据自动迁移**：首次加载检测 localStorage 旧步骤数据，自动转换为节点 + 边
+- ✅ 导出采用 **Kahn 拓扑排序** 算法，图结构转为线性命令序列，Python 后端无需改动
 
 ### v1.2.0 (2026-11-02)
 

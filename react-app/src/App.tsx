@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import FolderTree from './components/FolderTree/FolderTree';
-import FlowEditor from './components/FlowEditor/FlowEditor';
+import GraphEditor from './components/GraphEditor/GraphEditor';
 import { useStore } from './store/useStore';
 import { useDraggable } from './hooks/useDraggable';
 import { Layout, Card, Typography, message } from 'antd';
@@ -101,7 +101,7 @@ function App() {
           
           <div className="right-panel">
             <Card 
-              className="panel-card" 
+              className="panel-card graph-card" 
               title={
                 <div className="card-title">
                   <EditOutlined className="title-icon" />
@@ -109,7 +109,7 @@ function App() {
                 </div>
               }
             >
-              <FlowEditor />
+              <GraphEditor />
             </Card>
           </div>
         </div>

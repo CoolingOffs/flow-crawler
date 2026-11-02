@@ -1,54 +1,92 @@
+/**
+ * 全局状态管理 (Zustand)
+ * 图编辑器版本
+ */
 import { create } from 'zustand';
-import { Folder, Step, StepConfig, OpenUrlConfig, ClickElementConfig, WaitConfig, GetTextConfig, GetAttributeConfig, SetAttributeConfig, HttpRequestConfig, JsonExtractConfig, LoopConfig, ExecuteScriptConfig, LocalStorageConfig, KeyboardActionConfig, ElementMethodConfig, VariableOperationConfig, DingTalkNotifyConfig } from '../types';
-import { getFolders, saveFolders, getSteps, saveSteps, generateId } from '../utils/storage';
+import { applyNodeChanges, applyEdgeChanges, addEdge as rfAddEdge, Connection, NodeChange, EdgeChange } from '@xyflow/react';
+import { Folder, Step, CanvasData, FlowNode, FlowEdge, FlowNodeData, StepType, StepConfig } from '../types';
+import { getFolders, saveFolders, getSteps, getCanvasData, saveCanvasData, generateId, isMigrated, setMigrated } from '../utils/storage';
+import { migrateStepsToCanvas, getDefaultConfig, getDefaultName } from '../utils/migrateData';
 
 interface AppState {
   // 数据
   folders: Folder[];
-  steps: Step[];
-  
+  canvasData: Record<string, CanvasData>;   // key = folderId
+
   // UI 状态
   selectedFolderId: string | null;
+  selectedNodeId: string | null;
   expandedFolderIds: Set<string>;
-  
+
   // 文件夹操作
   addFolder: (name: string, parentId?: string | null) => void;
   updateFolder: (id: string, name: string) => void;
   deleteFolder: (id: string) => void;
   selectFolder: (id: string | null) => void;
   toggleFolderExpand: (id: string) => void;
-  
-  // 步骤操作
-  addStep: (folderId: string, type: Step['type']) => void;
-  updateStep: (id: string, updates: Partial<Step>) => void;
-  deleteStep: (id: string) => void;
-  moveStep: (id: string, direction: 'up' | 'down') => void;
-  updateStepConfig: (id: string, config: Partial<OpenUrlConfig | ClickElementConfig | WaitConfig | GetTextConfig | GetAttributeConfig | SetAttributeConfig | HttpRequestConfig | JsonExtractConfig | LoopConfig | ExecuteScriptConfig | LocalStorageConfig | KeyboardActionConfig | ElementMethodConfig | VariableOperationConfig | DingTalkNotifyConfig>) => void;
-  
-  // 子步骤操作
-  addSubStep: (parentId: string, type: Step['type']) => void;
-  deleteSubStep: (parentId: string, subStepId: string) => void;
-  updateSubStepConfig: (parentId: string, subStepId: string, config: Partial<OpenUrlConfig | ClickElementConfig | WaitConfig | GetTextConfig | GetAttributeConfig | SetAttributeConfig | HttpRequestConfig | JsonExtractConfig | LoopConfig | ExecuteScriptConfig | LocalStorageConfig | KeyboardActionConfig | ElementMethodConfig | VariableOperationConfig | DingTalkNotifyConfig>) => void;
-  
+
+  // 节点操作
+  addNode: (folderId: string, type: StepType, position: { x: number; y: number }) => void;
+  updateNode: (nodeId: string, updates: Partial<FlowNode>) => void;
+  updateNodeData: (nodeId: string, data: Partial<FlowNodeData>) => void;
+  updateNodeConfig: (nodeId: string, config: Partial<StepConfig>) => void;
+  deleteNode: (nodeId: string) => void;
+
+  // 画布变更 (React Flow 回调)
+  onNodesChange: (changes: NodeChange<FlowNode>[]) => void;
+  onEdgesChange: (changes: EdgeChange[]) => void;
+  onConnect: (connection: Connection) => void;
+
+  // 边操作
+  removeEdge: (edgeId: string) => void;
+
+  // 选中节点
+  selectNode: (nodeId: string | null) => void;
+
   // 初始化
   initData: () => void;
 }
 
 export const useStore = create<AppState>((set, get) => ({
-  // 初始数据
   folders: [],
-  steps: [],
+  canvasData: {},
   selectedFolderId: null,
+  selectedNodeId: null,
   expandedFolderIds: new Set(),
 
-  // 初始化数据
+  // 初始化数据（含自动迁移）
   initData: () => {
     const folders = getFolders();
-    const steps = getSteps();
-    set({ folders, steps });
+    let canvasData = getCanvasData();
+
+    // 如果还没迁移过，执行迁移
+    if (!isMigrated()) {
+      const oldSteps = getSteps();
+      if (oldSteps.length > 0) {
+        // 按 folderId 分组
+        const stepsByFolder: Record<string, Step[]> = {};
+        oldSteps.forEach(step => {
+          if (!stepsByFolder[step.folderId]) {
+            stepsByFolder[step.folderId] = [];
+          }
+          stepsByFolder[step.folderId].push(step);
+        });
+
+        // 转换每个文件夹的步骤为画布数据
+        Object.entries(stepsByFolder).forEach(([folderId, steps]) => {
+          canvasData[folderId] = migrateStepsToCanvas(steps);
+        });
+
+        saveCanvasData(canvasData);
+      }
+      setMigrated();
+    }
+
+    set({ folders, canvasData });
   },
 
-  // 添加文件夹
+  // ---- 文件夹操作 ----
+
   addFolder: (name: string, parentId = null) => {
     const now = Date.now();
     const newFolder: Folder = {
@@ -58,60 +96,51 @@ export const useStore = create<AppState>((set, get) => ({
       createdAt: now,
       updatedAt: now,
     };
-    
     const folders = [...get().folders, newFolder];
     saveFolders(folders);
     set({ folders });
   },
 
-  // 更新文件夹
   updateFolder: (id: string, name: string) => {
-    const folders = get().folders.map(folder =>
-      folder.id === id
-        ? { ...folder, name, updatedAt: Date.now() }
-        : folder
+    const folders = get().folders.map(f =>
+      f.id === id ? { ...f, name, updatedAt: Date.now() } : f
     );
     saveFolders(folders);
     set({ folders });
   },
 
-  // 删除文件夹（同时删除子文件夹和步骤）
   deleteFolder: (id: string) => {
     const folders = get().folders;
-    const steps = get().steps;
-    
-    // 递归获取所有要删除的文件夹 ID
+
     const getDescendantIds = (parentId: string): string[] => {
       const children = folders.filter(f => f.parentId === parentId);
       const ids = [parentId];
-      children.forEach(child => {
-        ids.push(...getDescendantIds(child.id));
-      });
+      children.forEach(child => ids.push(...getDescendantIds(child.id)));
       return ids;
     };
-    
+
     const folderIdsToDelete = getDescendantIds(id);
-    
-    // 删除文件夹和关联步骤
     const newFolders = folders.filter(f => !folderIdsToDelete.includes(f.id));
-    const newSteps = steps.filter(s => !folderIdsToDelete.includes(s.folderId));
-    
+
+    // 同时删除画布数据
+    const canvasData = { ...get().canvasData };
+    folderIdsToDelete.forEach(fid => delete canvasData[fid]);
+
     saveFolders(newFolders);
-    saveSteps(newSteps);
-    
+    saveCanvasData(canvasData);
+
     set({
       folders: newFolders,
-      steps: newSteps,
+      canvasData,
       selectedFolderId: get().selectedFolderId === id ? null : get().selectedFolderId,
+      selectedNodeId: null,
     });
   },
 
-  // 选择文件夹
   selectFolder: (id: string | null) => {
-    set({ selectedFolderId: id });
+    set({ selectedFolderId: id, selectedNodeId: null });
   },
 
-  // 切换文件夹展开/折叠
   toggleFolderExpand: (id: string) => {
     const expanded = new Set(get().expandedFolderIds);
     if (expanded.has(id)) {
@@ -122,212 +151,216 @@ export const useStore = create<AppState>((set, get) => ({
     set({ expandedFolderIds: expanded });
   },
 
-  // 添加步骤
-  addStep: (folderId: string, type: Step['type']) => {
-    const now = Date.now();
-    const steps = get().steps.filter(s => s.folderId === folderId);
-    const maxOrder = steps.length > 0 ? Math.max(...steps.map(s => s.order)) : -1;
-    
-    const defaultConfig: OpenUrlConfig | ClickElementConfig | WaitConfig | GetTextConfig | GetAttributeConfig | SetAttributeConfig | HttpRequestConfig | JsonExtractConfig | LoopConfig | ExecuteScriptConfig | LocalStorageConfig | KeyboardActionConfig | ElementMethodConfig | VariableOperationConfig | DingTalkNotifyConfig = 
-      type === 'openUrl' 
-        ? { url: '' }
-        : type === 'clickElement'
-        ? { selectorType: 'id', selectorValue: '', elementIndex: 0 }
-        : type === 'wait'
-        ? { seconds: 3 }
-        : type === 'getText'
-        ? { selectorType: 'id', selectorValue: '', elementIndex: 0, variableName: 'extractedText', textType: 'innerText' }
-        : type === 'getAttribute'
-        ? { selectorType: 'id', selectorValue: '', elementIndex: 0, variableName: 'extractedAttr', attributeName: 'href' }
-        : type === 'setAttribute'
-        ? { selectorType: 'id', selectorValue: '', elementIndex: 0, attributeName: 'value', attributeValue: '' }
-        : type === 'httpRequest'
-        ? { method: 'GET', url: '', headers: '', body: '', variableName: 'apiResponse', timeout: 30 }
-        : type === 'jsonExtract'
-        ? { sourceVariable: '', jsonPath: '$.', variableName: 'extractedData', extractAll: false }
-        : type === 'executeScript'
-        ? { script: '' }
-        : type === 'localStorage'
-        ? { key: '', value: '', storageType: 'local' as const, action: 'set' as const, variableName: '' }
-        : type === 'keyboardAction'
-        ? { key: 'Enter', selector: '', modifiers: [], pressCount: 1 }
-        : type === 'elementMethod'
-        ? { selector: '', method: 'focus', args: '', waitAfter: 0 }
-        : type === 'variableOperation'
-        ? { operation: 'template' as const, sourceVariable: '', resultVariable: '', operand: '', operand2: '' }
-        : type === 'dingTalkNotify'
-        ? { accessToken: '', msgType: 'text' as const, title: '', content: '' }
-        : { loopType: 'count', selectorType: 'class', selectorValue: '', variableSource: '', itemName: 'item', count: 10, subSteps: [] };
-    
-    const newStep: Step = {
-      id: generateId(),
-      folderId,
-      order: maxOrder + 1,
-      type,
-      name: type === 'openUrl' ? '打开网址' : type === 'clickElement' ? '点击元素' : type === 'wait' ? '等待' : type === 'getText' ? '获取文本' : type === 'getAttribute' ? '获取属性' : type === 'setAttribute' ? '设置属性' : type === 'httpRequest' ? 'HTTP 请求' : type === 'jsonExtract' ? 'JSON 提取' : type === 'executeScript' ? '注入 JS' : type === 'localStorage' ? '本地存储' : type === 'keyboardAction' ? '键盘操作' : type === 'elementMethod' ? '调用方法' : type === 'variableOperation' ? '变量操作' : type === 'dingTalkNotify' ? '钉钉推送' : '循环',
-      config: defaultConfig,
-      createdAt: now,
-      updatedAt: now,
+  // ---- 节点操作 ----
+
+  addNode: (folderId: string, type: StepType, position: { x: number; y: number }) => {
+    const nodeData: FlowNodeData = {
+      stepType: type,
+      name: getDefaultName(type),
+      config: getDefaultConfig(type),
     };
-    
-    const allSteps = [...get().steps, newStep];
-    saveSteps(allSteps);
-    set({ steps: allSteps });
+
+    const newNode: FlowNode = {
+      id: generateId(),
+      type: 'stepNode',
+      position,
+      data: nodeData,
+    };
+
+    const canvasData = { ...get().canvasData };
+    if (!canvasData[folderId]) {
+      canvasData[folderId] = { nodes: [], edges: [] };
+    }
+    canvasData[folderId] = {
+      ...canvasData[folderId],
+      nodes: [...canvasData[folderId].nodes, newNode],
+    };
+    saveCanvasData(canvasData);
+    set({ canvasData, selectedNodeId: newNode.id });
   },
 
-  // 更新步骤
-  updateStep: (id: string, updates: Partial<Step>) => {
-    const steps = get().steps.map(step =>
-      step.id === id
-        ? { ...step, ...updates, updatedAt: Date.now() }
-        : step
+  updateNode: (nodeId: string, updates: Partial<FlowNode>) => {
+    const folderId = get().selectedFolderId;
+    if (!folderId) return;
+
+    const canvasData = { ...get().canvasData };
+    const canvas = canvasData[folderId];
+    if (!canvas) return;
+
+    canvasData[folderId] = {
+      ...canvas,
+      nodes: canvas.nodes.map(n =>
+        n.id === nodeId ? { ...n, ...updates } : n
+      ),
+    };
+    saveCanvasData(canvasData);
+    set({ canvasData });
+  },
+
+  updateNodeData: (nodeId: string, data: Partial<FlowNodeData>) => {
+    const folderId = get().selectedFolderId;
+    if (!folderId) return;
+
+    const canvasData = { ...get().canvasData };
+    const canvas = canvasData[folderId];
+    if (!canvas) return;
+
+    canvasData[folderId] = {
+      ...canvas,
+      nodes: canvas.nodes.map(n =>
+        n.id === nodeId ? { ...n, data: { ...n.data, ...data } } : n
+      ),
+    };
+    saveCanvasData(canvasData);
+    set({ canvasData });
+  },
+
+  updateNodeConfig: (nodeId: string, config: Partial<StepConfig>) => {
+    const folderId = get().selectedFolderId;
+    if (!folderId) return;
+
+    const canvasData = { ...get().canvasData };
+    const canvas = canvasData[folderId];
+    if (!canvas) return;
+
+    canvasData[folderId] = {
+      ...canvas,
+      nodes: canvas.nodes.map(n =>
+        n.id === nodeId
+          ? { ...n, data: { ...n.data, config: { ...n.data.config, ...config } as StepConfig } }
+          : n
+      ),
+    };
+    saveCanvasData(canvasData);
+    set({ canvasData });
+  },
+
+  deleteNode: (nodeId: string) => {
+    const folderId = get().selectedFolderId;
+    if (!folderId) return;
+
+    const canvasData = { ...get().canvasData };
+    const canvas = canvasData[folderId];
+    if (!canvas) return;
+
+    canvasData[folderId] = {
+      nodes: canvas.nodes.filter(n => n.id !== nodeId),
+      edges: canvas.edges.filter(e => e.source !== nodeId && e.target !== nodeId),
+    };
+    saveCanvasData(canvasData);
+    set({
+      canvasData,
+      selectedNodeId: get().selectedNodeId === nodeId ? null : get().selectedNodeId,
+    });
+  },
+
+  // ---- 画布变更回调 (React Flow) ----
+
+  onNodesChange: (changes: NodeChange<FlowNode>[]) => {
+    const folderId = get().selectedFolderId;
+    if (!folderId) return;
+
+    const canvasData = { ...get().canvasData };
+    const canvas = canvasData[folderId];
+    if (!canvas) return;
+
+    canvasData[folderId] = {
+      ...canvas,
+      nodes: applyNodeChanges(changes, canvas.nodes),
+    };
+    saveCanvasData(canvasData);
+    set({ canvasData });
+  },
+
+  onEdgesChange: (changes: EdgeChange[]) => {
+    const folderId = get().selectedFolderId;
+    if (!folderId) return;
+
+    // 禁止键盘删除边（仅允许双击删除）
+    // 过滤掉 remove 变更，其他（select 等）放行
+    const allowed = changes.filter(c => c.type !== 'remove');
+    if (allowed.length === 0) return;
+
+    const canvasData = { ...get().canvasData };
+    const canvas = canvasData[folderId];
+    if (!canvas) return;
+
+    canvasData[folderId] = {
+      ...canvas,
+      edges: applyEdgeChanges(allowed, canvas.edges),
+    };
+    saveCanvasData(canvasData);
+    set({ canvasData });
+  },
+
+  onConnect: (connection: Connection) => {
+    const folderId = get().selectedFolderId;
+    if (!folderId) return;
+    if (!connection.source || !connection.target) return;
+
+    // 防止自连
+    if (connection.source === connection.target) return;
+
+    const canvasData = { ...get().canvasData };
+    const canvas = canvasData[folderId];
+    if (!canvas) return;
+
+    // 限制：每个节点只能有一个出边和一个入边
+    const hasOutgoing = canvas.edges.some(e => e.source === connection.source);
+    const hasIncoming = canvas.edges.some(e => e.target === connection.target);
+
+    if (hasOutgoing || hasIncoming) return;
+
+    // 防止循环：检查从 target 沿出边走下去是否能回到 source
+    const wouldCreateCycle = (): boolean => {
+      let current = connection.target;
+      const visited = new Set<string>();
+      while (current) {
+        if (current === connection.source) return true;
+        if (visited.has(current)) return false;
+        visited.add(current);
+        const nextEdge = canvas.edges.find(e => e.source === current);
+        current = nextEdge ? nextEdge.target : '';
+      }
+      return false;
+    };
+
+    if (wouldCreateCycle()) return;
+
+    const newEdges = rfAddEdge(
+      { ...connection, type: 'smoothstep' },
+      canvas.edges
     );
-    saveSteps(steps);
-    set({ steps });
-  },
 
-  // 删除步骤
-  deleteStep: (id: string) => {
-    const steps = get().steps.filter(s => s.id !== id);
-    saveSteps(steps);
-    set({ steps });
-  },
-
-  // 移动步骤（上移/下移）
-  moveStep: (id: string, direction: 'up' | 'down') => {
-    const step = get().steps.find(s => s.id === id);
-    if (!step) return;
-    
-    const folderSteps = get().steps
-      .filter(s => s.folderId === step.folderId)
-      .sort((a, b) => a.order - b.order);
-    
-    const currentIndex = folderSteps.findIndex(s => s.id === id);
-    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    
-    if (targetIndex < 0 || targetIndex >= folderSteps.length) return;
-    
-    // 交换顺序
-    const targetStep = folderSteps[targetIndex];
-    const steps = get().steps.map(s => {
-      if (s.id === id) {
-        return { ...s, order: targetStep.order, updatedAt: Date.now() };
-      }
-      if (s.id === targetStep.id) {
-        return { ...s, order: step.order, updatedAt: Date.now() };
-      }
-      return s;
-    });
-    
-    saveSteps(steps);
-    set({ steps });
-  },
-
-  // 更新步骤配置
-  updateStepConfig: (id: string, config: Partial<OpenUrlConfig | ClickElementConfig | WaitConfig | GetTextConfig | GetAttributeConfig | SetAttributeConfig | HttpRequestConfig | JsonExtractConfig | LoopConfig | ExecuteScriptConfig | LocalStorageConfig | KeyboardActionConfig | ElementMethodConfig | VariableOperationConfig | DingTalkNotifyConfig>) => {
-    const steps = get().steps.map(step => {
-      if (step.id === id) {
-        return {
-          ...step,
-          config: { ...step.config, ...config } as StepConfig,
-          updatedAt: Date.now(),
-        };
-      }
-      return step;
-    });
-    saveSteps(steps);
-    set({ steps });
-  },
-
-  // 添加子步骤
-  addSubStep: (parentId: string, type: Step['type']) => {
-    const now = Date.now();
-    const defaultConfig: any = 
-      type === 'openUrl' ? { url: '' }
-      : type === 'clickElement' ? { selectorType: 'id', selectorValue: '', elementIndex: 0 }
-      : type === 'wait' ? { seconds: 3 }
-      : type === 'getText' ? { selectorType: 'id', selectorValue: '', elementIndex: 0, variableName: 'extractedText', textType: 'innerText' }
-      : type === 'getAttribute' ? { selectorType: 'id', selectorValue: '', elementIndex: 0, variableName: 'extractedAttr', attributeName: 'href' }
-      : type === 'setAttribute' ? { selectorType: 'id', selectorValue: '', elementIndex: 0, attributeName: 'value', attributeValue: '' }
-      : type === 'httpRequest' ? { method: 'GET', url: '', headers: '', body: '', variableName: 'apiResponse', timeout: 30 }
-      : type === 'jsonExtract' ? { sourceVariable: '', jsonPath: '$.', variableName: 'extractedData', extractAll: false }
-      : type === 'interceptRequest' ? { urlPattern: '', method: 'ALL', modifyHeaders: '', modifyBody: '', modifyResponse: '', variableName: 'interceptedData', continueRequest: true }
-      : type === 'executeScript' ? { script: '' }
-      : type === 'localStorage' ? { key: '', value: '', storageType: 'local', action: 'set', variableName: '' }
-      : type === 'keyboardAction' ? { key: 'Enter', selector: '', modifiers: [], pressCount: 1 }
-      : type === 'elementMethod' ? { selector: '', method: 'focus', args: '', waitAfter: 0 }
-      : type === 'variableOperation' ? { operation: 'template', sourceVariable: '', resultVariable: '', operand: '', operand2: '' }
-      : type === 'dingTalkNotify' ? { accessToken: '', msgType: 'text', title: '', content: '' }
-      : { loopType: 'count', selectorType: 'class', selectorValue: '', variableSource: '', itemName: 'item', count: 10, subSteps: [] };
-
-    const stepName = type === 'openUrl' ? '打开网址' : type === 'clickElement' ? '点击元素' : type === 'wait' ? '等待' : type === 'getText' ? '获取文本' : type === 'getAttribute' ? '获取属性' : type === 'setAttribute' ? '设置属性' : type === 'httpRequest' ? 'HTTP 请求' : type === 'jsonExtract' ? 'JSON 提取' : type === 'interceptRequest' ? '拦截请求' : type === 'executeScript' ? '注入 JS' : type === 'localStorage' ? '本地存储' : type === 'keyboardAction' ? '键盘操作' : type === 'elementMethod' ? '调用方法' : type === 'variableOperation' ? '变量操作' : type === 'dingTalkNotify' ? '钉钉推送' : '循环';
-
-    // 找到父步骤以获取其 folderId
-    const parentStep = get().steps.find(s => s.id === parentId);
-    const folderId = parentStep?.folderId || '';
-
-    const newSubStep: Step = {
-      id: generateId(),
-      folderId,  // 继承父步骤的 folderId
-      order: 0,
-      type,
-      name: stepName,
-      config: defaultConfig,
-      createdAt: now,
-      updatedAt: now,
+    canvasData[folderId] = {
+      ...canvas,
+      edges: newEdges,
     };
-
-    const steps = get().steps.map(step => {
-      if (step.id === parentId) {
-        const loopConfig = step.config as LoopConfig;
-        const subSteps = [...(loopConfig.subSteps || []), { ...newSubStep, order: (loopConfig.subSteps || []).length }];
-        return {
-          ...step,
-          config: { ...loopConfig, subSteps },
-          updatedAt: now,
-        };
-      }
-      return step;
-    });
-    saveSteps(steps);
-    set({ steps });
+    saveCanvasData(canvasData);
+    set({ canvasData });
   },
 
-  // 删除子步骤
-  deleteSubStep: (parentId: string, subStepId: string) => {
-    const steps = get().steps.map(step => {
-      if (step.id === parentId) {
-        const loopConfig = step.config as LoopConfig;
-        const subSteps = (loopConfig.subSteps || []).filter(s => s.id !== subStepId).map((s, i) => ({ ...s, order: i }));
-        return {
-          ...step,
-          config: { ...loopConfig, subSteps },
-          updatedAt: Date.now(),
-        };
-      }
-      return step;
-    });
-    saveSteps(steps);
-    set({ steps });
+  // ---- 边操作 ----
+
+  removeEdge: (edgeId: string) => {
+    const folderId = get().selectedFolderId;
+    if (!folderId) return;
+
+    const canvasData = { ...get().canvasData };
+    const canvas = canvasData[folderId];
+    if (!canvas) return;
+
+    canvasData[folderId] = {
+      ...canvas,
+      edges: canvas.edges.filter(e => e.id !== edgeId),
+    };
+    saveCanvasData(canvasData);
+    set({ canvasData });
   },
 
-  // 更新子步骤配置
-  updateSubStepConfig: (parentId: string, subStepId: string, config: any) => {
-    const steps = get().steps.map(step => {
-      if (step.id === parentId) {
-        const loopConfig = step.config as LoopConfig;
-        const subSteps = (loopConfig.subSteps || []).map(s =>
-          s.id === subStepId ? { ...s, config: { ...s.config, ...config }, updatedAt: Date.now() } : s
-        );
-        return {
-          ...step,
-          config: { ...loopConfig, subSteps },
-          updatedAt: Date.now(),
-        };
-      }
-      return step;
-    });
-    saveSteps(steps);
-    set({ steps });
+  // ---- 选中节点 ----
+
+  selectNode: (nodeId: string | null) => {
+    set({ selectedNodeId: nodeId });
   },
 }));

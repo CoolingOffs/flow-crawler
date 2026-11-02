@@ -1,0 +1,80 @@
+/* NodePalette 样式 */
+
+.node-palette {
+  width: 200px;
+  height: 100%;
+  background: #fff;
+  border-right: 1px solid #f0f0f0;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.palette-title {
+  padding: 12px 12px 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.palette-hint {
+  padding: 0 12px 8px;
+  font-size: 11px;
+  color: #8c8c8c;
+}
+
+.palette-groups {
+  padding: 0 8px 8px;
+}
+
+.palette-group {
+  margin-bottom: 8px;
+}
+
+.group-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #595959;
+  padding: 4px 4px 2px;
+  margin-bottom: 2px;
+}
+
+.group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: grab;
+  transition: all 0.15s ease;
+  font-size: 12px;
+  user-select: none;
+  border: 1px solid transparent;
+}
+
+.palette-item:hover {
+  background: #f0f5ff;
+  border-color: #d6e4ff;
+}
+
+.palette-item:active {
+  cursor: grabbing;
+  background: #e6f4ff;
+  transform: scale(0.98);
+}
+
+.palette-item-icon {
+  font-size: 14px;
+  color: #1677ff;
+  flex-shrink: 0;
+}
+
+.palette-item-name {
+  color: #262626;
+  white-space: nowrap;
+}

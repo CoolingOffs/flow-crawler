@@ -134,6 +134,12 @@
   flex-direction: column;
 }
 
+/* 图编辑器卡片 - 禁用滚动，React Flow 自己处理平移 */
+.graph-card .ant-card-body {
+  overflow: hidden !important;
+  padding: 0 !important;
+}
+
 @keyframes cardSlideIn {
   from {
     transform: translateY(30px);

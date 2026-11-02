@@ -871,7 +871,7 @@ const FlowEditor: React.FC = () => {
                 <div className="step-number">3</div>
                 <div className="step-content">
                   <strong>执行或导出</strong>
-                  <p>点击"执行 JSON"按钮直接在浏览器中运行流程，或点击"复制 JSON"/"导出文件"按钮获取配置供 Python 使用。</p>
+                  <p>点击"执行 JSON"按钮将配置发送到 Python 后端执行，或点击"复制 JSON"按钮获取配置。</p>
                 </div>
               </div>
               
@@ -889,7 +889,7 @@ const FlowEditor: React.FC = () => {
             <h5>🚀 执行功能详解</h5>
             <ul className="tutorial-list">
               <li>
-                <strong>执行 JSON：</strong>点击顶部"执行 JSON"按钮，输入 JSON 配置后执行。浏览器会自动打开并执行所有步骤，执行完成后保持打开状态。
+                <strong>执行 JSON：</strong>点击顶部"执行 JSON"按钮，输入 JSON 配置后发送到 Python 后端，由 Playwright 驱动浏览器执行所有步骤，执行完成后浏览器保持打开状态。
               </li>
               <li>
                 <strong>导入 JSON：</strong>点击右下角"导入"按钮，可以将 JSON 配置导入到当前选中的文件夹中。导入后会生成对应的步骤。
@@ -1185,7 +1185,7 @@ const FlowEditor: React.FC = () => {
                 <strong>JSON 回填：</strong>点击"导入"按钮，可以将 JSON 配置导入回编辑器进行修改
               </li>
               <li>
-                <strong>执行测试：</strong>点击"执行 JSON"可以直接在浏览器中测试流程，无需启动 Python 后端
+                <strong>执行流程：</strong>点击"执行 JSON"将配置发送到 Python 后端，由 Playwright 驱动浏览器执行
               </li>
               <li>
                 <strong>步骤排序：</strong>使用上移/下移按钮调整执行顺序
@@ -1203,7 +1203,7 @@ const FlowEditor: React.FC = () => {
           </div>
 
           <div className="tutorial-tip">
-            💡 <strong>提示：</strong>配置完成后，点击“复制 JSON”按钮，将配置粘贴给 Python 后端使用！
+            💡 <strong>提示：</strong>配置完成后，点击"执行 JSON"按钮，配置将发送到 Python 后端由 Playwright 执行！
           </div>
         </div>
       </Modal>
@@ -1237,7 +1237,7 @@ const FlowEditor: React.FC = () => {
             icon={<PlayCircleOutlined />}
             onClick={handleExecuteJson}
           >
-            执行
+            发送到 Python 执行
           </Button>
         ]}
         width={800}
@@ -1246,10 +1246,10 @@ const FlowEditor: React.FC = () => {
       >
         <div className="execute-json-content">
           <div className="execute-json-tip">
-            💡 <strong>提示：</strong>输入 JSON 配置，点击执行按钮调用 Python 后端执行流程。
+            💡 <strong>提示：</strong>输入 JSON 配置，点击执行按钮发送到 Python 后端，由 Playwright 驱动浏览器执行流程。
             <br />
             <span style={{ fontSize: '12px', color: '#8c8c8c' }}>
-              确保 Python 服务器已启动：<code>python server.py</code>
+              确保 Python 服务器已启动：<code>python server.py</code>（端口 8000）
             </span>
           </div>
           

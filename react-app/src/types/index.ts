@@ -208,3 +208,6 @@ export interface ExportedCommand {
   action: string;
   data: Record<string, any>;
 }
+
+// 图编辑器类型（重新导出）
+export type { FlowNodeData, FlowNode, FlowEdge, CanvasData, StepType } from './graph';
