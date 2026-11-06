@@ -118,3 +118,72 @@
   font-size: 12px;
   resize: none;
 }
+
+/* 定时任务循环范围信息 */
+.loop-range-box {
+  background: #f6f8ff;
+  border: 1px solid #d6e4ff;
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.loop-range-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1677ff;
+  margin-bottom: 6px;
+}
+
+.loop-range-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.loop-range-badge {
+  display: inline-block;
+  background: #1677ff;
+  color: #fff;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.loop-range-name {
+  color: #262626;
+  font-weight: 500;
+}
+
+.loop-range-arrow {
+  color: #bfbfbf;
+  font-size: 13px;
+}
+
+.loop-range-steps {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #d6e4ff;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.loop-step-tag {
+  display: inline-block;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  color: #595959;
+  line-height: 1.4;
+}
+
+.loop-range-empty {
+  font-size: 11px;
+  color: #bfbfbf;
+  line-height: 1.6;
+}

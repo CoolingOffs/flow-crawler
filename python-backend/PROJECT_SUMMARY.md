@@ -13,8 +13,8 @@ python-backend/
 ├── requirements.txt                 # Python 依赖
 ├── app/
 │   ├── core/
-│   │   ├── executor.py             # 流程执行器（浏览器管理）
-│   │   ├── command_handler.py      # 命令处理器（10种命令）
+│   │   ├── executor.py             # 流程执行器（浏览器管理 + 定时任务调度）
+│   │   ├── command_handler.py      # 命令处理器（17 种命令）
 │   │   ├── variable_manager.py     # 变量管理器
 │   │   └── logger.py               # 日志配置
 │   ├── api/
@@ -28,7 +28,7 @@ python-backend/
 
 ---
 
-### 2. 支持的 10 种命令
+### 2. 支持的 17 种命令
 
 | 命令 | 功能 | 参数 |
 |------|------|------|
@@ -42,6 +42,13 @@ python-backend/
 | **jsonExtract** | JSON 提取 | sourceVariable, jsonPath, variableName, extractAll |
 | **loop** | 循环 | loopType, count/variableSource/selector, commands |
 | **interceptRequest** | 拦截请求 | urlPattern, method, modify*, variableName, continueRequest |
+| **executeScript** | 注入 JS | script |
+| **localStorage** | 本地存储 | key, value, storageType, action, variableName |
+| **keyboardAction** | 键盘操作 | key, selector, modifiers, pressCount |
+| **elementMethod** | 调用方法 | selector, method, args, waitAfter |
+| **variableOperation** | 变量操作 | operation, sourceVariable, resultVariable, operand, operand2 |
+| **dingTalkNotify** | 钉钉推送 | accessToken, msgType, title, content |
+| **scheduledTask** | 定时任务 | run_type, cron_expression, execute_once_time, max_trigger_count, _loop_start_index, _loop_end_index |
 
 ---
 
@@ -109,6 +116,8 @@ python-backend/
 - **FastAPI** - Web API 框架
 - **Uvicorn** - ASGI 服务器
 - **Pydantic** - 数据验证
+- **Croniter** - Cron 表达式解析（定时任务）
+- **Croniter** - Cron 表达式解析（定时任务）
 
 ### 前端技术（已完成）
 - **React 19** - UI 框架
@@ -126,7 +135,7 @@ python-backend/
 │                    前端（React）                      │
 ├─────────────────────────────────────────────────────┤
 │  1. 创建文件夹结构                                    │
-│  2. 添加步骤（10种类型）                              │
+│  2. 添加步骤（17 种类型）                              │
 │  3. 配置步骤参数                                      │
 │  4. 导出 JSON 配置                                    │
 └────────────────────┬────────────────────────────────┘
@@ -226,7 +235,7 @@ print(f"变量: {variables}")
 ## 🎯 核心特性
 
 ### 1. 完整的命令支持
-- ✅ 10 种命令类型
+- ✅ 17 种命令类型
 - ✅ 参数验证
 - ✅ 错误处理
 - ✅ 变量替换
@@ -327,20 +336,23 @@ console_handler.setLevel(logging.INFO)  # DEBUG/INFO/WARNING/ERROR
 
 ### 前端（React）- ✅ 100%
 - [x] 文件夹管理
-- [x] 10 种步骤类型
+- [x] 17 种步骤类型
+- [x] 节点连线图编辑器（React Flow）
 - [x] 步骤配置表单
 - [x] 变量管理
 - [x] JSON 导出
 - [x] 新手教程
 - [x] 网页预览
 - [x] 浮动窗口
+- [x] 定时任务配置
 
 ### 后端（Python）- ✅ 100%
 - [x] 流程执行器
-- [x] 10 种命令处理
+- [x] 17 种命令处理
 - [x] 变量管理
 - [x] 请求拦截
 - [x] 循环处理
+- [x] 定时任务调度（croniter）
 - [x] API 服务器
 - [x] 日志系统
 - [x] 错误处理
@@ -357,7 +369,7 @@ console_handler.setLevel(logging.INFO)  # DEBUG/INFO/WARNING/ERROR
 
 ### 1. 测试
 - 安装依赖并运行示例
-- 测试所有 10 种命令
+- 测试所有 17 种命令
 - 验证变量替换
 - 测试循环功能
 
@@ -371,7 +383,6 @@ console_handler.setLevel(logging.INFO)  # DEBUG/INFO/WARNING/ERROR
 - 添加截图功能
 - 支持 PDF 导出
 - 添加数据持久化
-- 支持定时执行
 
 ### 4. 部署
 - Docker 容器化
@@ -418,14 +429,15 @@ with FlowExecutor(config) as executor:
 
 Python 后端已完整实现，包含：
 
-1. ✅ **完整的执行引擎** - 支持 10 种命令
+1. ✅ **完整的执行引擎** - 支持 17 种命令
 2. ✅ **强大的变量系统** - 支持 `${变量名}` 替换
 3. ✅ **浏览器自动化** - 基于 Playwright
 4. ✅ **API 服务器** - FastAPI + 自动文档
 5. ✅ **请求拦截** - 修改请求和响应
 6. ✅ **循环处理** - 3 种循环方式
-7. ✅ **日志系统** - 详细的执行日志
-8. ✅ **完整文档** - README + 快速开始
+7. ✅ **定时任务** - Cron 表达式调度引擎
+8. ✅ **日志系统** - 详细的执行日志
+9. ✅ **完整文档** - README + 快速开始
 
 **与前端完美对接**，可以直接执行前端导出的 JSON 配置！
 

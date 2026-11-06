@@ -11,12 +11,14 @@ import {
   Background,
   BackgroundVariant,
   useReactFlow,
+  ConnectionMode,
+  type Connection,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 import { useStore } from '../../store/useStore';
 import { exportCanvasToConfig, previewJsonString } from '../../utils/exportFlow';
-import { FlowNode, StepType } from '../../types';
+import { FlowNode, FlowEdge, StepType } from '../../types';
 import StepNode from './StepNode';
 import NodePalette from './NodePalette';
 import NodeConfigPanel from './NodeConfigPanel';
@@ -34,6 +36,24 @@ import './GraphEditor.css';
 
 // 注册自定义节点类型
 const nodeTypes = { stepNode: StepNode };
+
+/** BFS 检查从 start 到 end 是否存在有向路径 */
+function hasPath(start: string, end: string, edges: FlowEdge[]): boolean {
+  if (start === end) return true;
+  const visited = new Set<string>();
+  const queue = [start];
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    if (visited.has(current)) continue;
+    visited.add(current);
+    const nexts = edges.filter(e => e.source === current).map(e => e.target);
+    for (const next of nexts) {
+      if (next === end) return true;
+      if (!visited.has(next)) queue.push(next);
+    }
+  }
+  return false;
+}
 
 const GraphEditorInner: React.FC = () => {
   const {
@@ -64,59 +84,17 @@ const GraphEditorInner: React.FC = () => {
   const rawNodes = currentCanvas?.nodes || [];
   const edges = currentCanvas?.edges || [];
 
-  // 计算执行顺序（拓扑排序）并给节点添加编号
+  // 节点序号已在 data._order 中固定（创建时赋值，删除时顺位）
+  // 这里只是将 _order 注入为 executionOrder 并构建 orderMap 供导出使用
   const { nodes, nodeOrderMap } = useMemo(() => {
     const orderMap = new Map<string, number>();
-    if (rawNodes.length === 0) return { nodes: rawNodes, nodeOrderMap: orderMap };
-
-    // 计算入度
-    const inDegree = new Map<string, number>();
-    const adjacency = new Map<string, string[]>();
-    rawNodes.forEach(n => {
-      inDegree.set(n.id, 0);
-      adjacency.set(n.id, []);
+    const nodesWithOrder = rawNodes.map(n => {
+      const order = (n.data as any)._order || 0;
+      orderMap.set(n.id, order);
+      return { ...n, data: { ...n.data, executionOrder: order } };
     });
-    edges.forEach(e => {
-      adjacency.get(e.source)?.push(e.target);
-      inDegree.set(e.target, (inDegree.get(e.target) || 0) + 1);
-    });
-
-    // BFS 拓扑排序
-    // 先收集所有入度为0的起始节点，按 Y 坐标排序（从上到下）
-    const startNodes: string[] = [];
-    inDegree.forEach((deg, id) => { if (deg === 0) startNodes.push(id); });
-    startNodes.sort((a, b) => {
-      const nodeA = rawNodes.find(n => n.id === a);
-      const nodeB = rawNodes.find(n => n.id === b);
-      return (nodeA?.position.y || 0) - (nodeB?.position.y || 0);
-    });
-
-    let order = 1;
-    const processed = new Set<string>();
-    // 对每个起始节点，沿链走到底
-    for (const startId of startNodes) {
-      if (processed.has(startId)) continue;
-      let current = startId;
-      while (current && !processed.has(current)) {
-        processed.add(current);
-        orderMap.set(current, order++);
-        const nextEdge = edges.find(e => e.source === current);
-        current = nextEdge ? nextEdge.target : '';
-      }
-    }
-
-    // 未连线的节点按 Y 坐标排序
-    const missing = rawNodes.filter(n => !orderMap.has(n.id)).sort((a, b) => a.position.y - b.position.y);
-    missing.forEach(n => orderMap.set(n.id, order++));
-
-    // 将 order 注入节点 data
-    const nodesWithOrder = rawNodes.map(n => ({
-      ...n,
-      data: { ...n.data, executionOrder: orderMap.get(n.id) },
-    }));
-
     return { nodes: nodesWithOrder, nodeOrderMap: orderMap };
-  }, [rawNodes, edges]);
+  }, [rawNodes]);
 
   // 导出配置（只包含有连线的节点）
   const exportedConfig = useMemo(() => {
@@ -183,6 +161,57 @@ const GraphEditorInner: React.FC = () => {
   const onPaneClick = useCallback(() => {
     selectNode(null);
   }, [selectNode]);
+
+  // 连线验证：定时任务的顶点连顶点，底点连底点
+  // 且顶点目标和底点目标之间必须有连续路径
+  const isValidConnection = useCallback(
+    (connection: Connection | FlowEdge) => {
+      if (!connection.source || !connection.target) return false;
+      if (connection.source === connection.target) return false;
+
+      const sourceNode = rawNodes.find(n => n.id === connection.source);
+      const targetNode = rawNodes.find(n => n.id === connection.target);
+      const sourceIsST = (sourceNode?.data as any)?.stepType === 'scheduledTask';
+      const targetIsST = (targetNode?.data as any)?.stepType === 'scheduledTask';
+
+      // 定时任务顶部(source) → 其他节点顶部(target)：回边
+      if (sourceIsST) {
+        // 如果定时任务底部已有连线，检查路径连通性
+        const bottomEdge = edges.find(e => e.target === connection.source);
+        if (bottomEdge) {
+          // 从顶点目标（循环起点）到底点目标（循环终点）必须有路径
+          const loopStart = connection.target;
+          const loopEnd = bottomEdge.source;
+          if (!hasPath(loopStart, loopEnd, edges)) return false;
+        }
+        return true;
+      }
+
+      // 普通节点底部(source) → 定时任务底部(target)：正常流入
+      if (targetIsST) {
+        // 如果定时任务顶部已有连线，检查路径连通性
+        const topEdge = edges.find(e => e.source === connection.target);
+        if (topEdge) {
+          // 从顶点目标（循环起点）到底点目标（循环终点）必须有路径
+          const loopStart = topEdge.target;
+          const loopEnd = connection.source;
+          if (!hasPath(loopStart, loopEnd, edges)) return false;
+        }
+        return true;
+      }
+
+      // 普通节点：目标不能已有入边
+      const hasIncoming = edges.some(e => e.target === connection.target);
+      if (hasIncoming) return false;
+
+      // 普通节点：源不能已有出边
+      const hasOutgoing = edges.some(e => e.source === connection.source);
+      if (hasOutgoing) return false;
+
+      return true;
+    },
+    [rawNodes, edges]
+  );
 
   // 复制 JSON
   const handleCopyJson = async () => {
@@ -272,6 +301,9 @@ const GraphEditorInner: React.FC = () => {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            isValidConnection={isValidConnection}
+            connectionMode={ConnectionMode.Loose}
+            connectionRadius={80}
             onDrop={onDrop}
             onDragOver={onDragOver}
             onNodeClick={onNodeClick}

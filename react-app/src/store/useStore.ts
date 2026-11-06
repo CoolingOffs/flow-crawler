@@ -8,6 +8,59 @@ import { Folder, Step, CanvasData, FlowNode, FlowEdge, FlowNodeData, StepType, S
 import { getFolders, saveFolders, getSteps, getCanvasData, saveCanvasData, generateId, isMigrated, setMigrated } from '../utils/storage';
 import { migrateStepsToCanvas, getDefaultConfig, getDefaultName } from '../utils/migrateData';
 
+/**
+ * 按 Y 坐标重新给节点编号（1-based），用于删除节点后顺位
+ */
+function renumberNodesByPosition(nodes: FlowNode[]): FlowNode[] {
+  return [...nodes]
+    .sort((a, b) => a.position.y - b.position.y)
+    .map((n, i) => ({
+      ...n,
+      data: { ...n.data, _order: i + 1 },
+    }));
+}
+
+/**
+ * 确保所有节点都有 _order（兼容旧数据）
+ */
+function ensureNodeOrders(canvasData: Record<string, CanvasData>): Record<string, CanvasData> {
+  const result = { ...canvasData };
+  Object.keys(result).forEach(folderId => {
+    const canvas = result[folderId];
+    if (!canvas?.nodes) return;
+    const needsOrder = canvas.nodes.some(n => !(n.data as any)._order);
+    if (needsOrder) {
+      const sorted = [...canvas.nodes].sort((a, b) => a.position.y - b.position.y);
+      result[folderId] = {
+        ...canvas,
+        nodes: sorted.map((n, i) => ({
+          ...n,
+          data: { ...n.data, _order: i + 1 },
+        })),
+      };
+    }
+  });
+  return result;
+}
+
+/** BFS 检查从 start 到 end 是否存在有向路径 */
+function hasPath(start: string, end: string, edges: FlowEdge[]): boolean {
+  if (start === end) return true;
+  const visited = new Set<string>();
+  const queue = [start];
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    if (visited.has(current)) continue;
+    visited.add(current);
+    const nexts = edges.filter(e => e.source === current).map(e => e.target);
+    for (const next of nexts) {
+      if (next === end) return true;
+      if (!visited.has(next)) queue.push(next);
+    }
+  }
+  return false;
+}
+
 interface AppState {
   // 数据
   folders: Folder[];
@@ -82,6 +135,8 @@ export const useStore = create<AppState>((set, get) => ({
       setMigrated();
     }
 
+    // 确保所有节点都有 _order（兼容旧数据）
+    canvasData = ensureNodeOrders(canvasData);
     set({ folders, canvasData });
   },
 
@@ -154,10 +209,21 @@ export const useStore = create<AppState>((set, get) => ({
   // ---- 节点操作 ----
 
   addNode: (folderId: string, type: StepType, position: { x: number; y: number }) => {
+    const canvasData = { ...get().canvasData };
+    if (!canvasData[folderId]) {
+      canvasData[folderId] = { nodes: [], edges: [] };
+    }
+
+    // 新节点始终追加到末尾（序号 = 当前最大 + 1），不受拖放位置影响
+    const existingNodes = canvasData[folderId].nodes;
+    const maxOrder = existingNodes.reduce((max, n) => Math.max(max, (n.data as any)._order || 0), 0);
+    const nextOrder = maxOrder + 1;
+
     const nodeData: FlowNodeData = {
       stepType: type,
       name: getDefaultName(type),
       config: getDefaultConfig(type),
+      _order: nextOrder,
     };
 
     const newNode: FlowNode = {
@@ -167,13 +233,9 @@ export const useStore = create<AppState>((set, get) => ({
       data: nodeData,
     };
 
-    const canvasData = { ...get().canvasData };
-    if (!canvasData[folderId]) {
-      canvasData[folderId] = { nodes: [], edges: [] };
-    }
     canvasData[folderId] = {
       ...canvasData[folderId],
-      nodes: [...canvasData[folderId].nodes, newNode],
+      nodes: [...existingNodes, newNode],
     };
     saveCanvasData(canvasData);
     set({ canvasData, selectedNodeId: newNode.id });
@@ -243,8 +305,10 @@ export const useStore = create<AppState>((set, get) => ({
     const canvas = canvasData[folderId];
     if (!canvas) return;
 
+    // 删除节点和关联边，然后按 Y 位置重新编号
+    const remainingNodes = canvas.nodes.filter(n => n.id !== nodeId);
     canvasData[folderId] = {
-      nodes: canvas.nodes.filter(n => n.id !== nodeId),
+      nodes: renumberNodesByPosition(remainingNodes),
       edges: canvas.edges.filter(e => e.source !== nodeId && e.target !== nodeId),
     };
     saveCanvasData(canvasData);
@@ -264,9 +328,15 @@ export const useStore = create<AppState>((set, get) => ({
     const canvas = canvasData[folderId];
     if (!canvas) return;
 
+    const updatedNodes = applyNodeChanges(changes, canvas.nodes);
+
+    // 如果有节点被删除，重新编号剩余节点
+    const hasRemoval = changes.some(c => c.type === 'remove');
+    const finalNodes = hasRemoval ? renumberNodesByPosition(updatedNodes) : updatedNodes;
+
     canvasData[folderId] = {
       ...canvas,
-      nodes: applyNodeChanges(changes, canvas.nodes),
+      nodes: finalNodes,
     };
     saveCanvasData(canvasData);
     set({ canvasData });
@@ -305,27 +375,49 @@ export const useStore = create<AppState>((set, get) => ({
     const canvas = canvasData[folderId];
     if (!canvas) return;
 
-    // 限制：每个节点只能有一个出边和一个入边
-    const hasOutgoing = canvas.edges.some(e => e.source === connection.source);
-    const hasIncoming = canvas.edges.some(e => e.target === connection.target);
+    const sourceNode = canvas.nodes.find(n => n.id === connection.source);
+    const targetNode = canvas.nodes.find(n => n.id === connection.target);
+    const sourceIsST = (sourceNode?.data as any)?.stepType === 'scheduledTask';
+    const targetIsST = (targetNode?.data as any)?.stepType === 'scheduledTask';
 
-    if (hasOutgoing || hasIncoming) return;
-
-    // 防止循环：检查从 target 沿出边走下去是否能回到 source
-    const wouldCreateCycle = (): boolean => {
-      let current = connection.target;
-      const visited = new Set<string>();
-      while (current) {
-        if (current === connection.source) return true;
-        if (visited.has(current)) return false;
-        visited.add(current);
-        const nextEdge = canvas.edges.find(e => e.source === current);
-        current = nextEdge ? nextEdge.target : '';
+    if (sourceIsST) {
+      // 定时任务顶部(source) → 其他节点顶部(target)：回边
+      // 最多 2 条出线
+      const outgoingCount = canvas.edges.filter(e => e.source === connection.source).length;
+      if (outgoingCount >= 2) return;
+      // 如果底部已有连线，检查顶点目标和底点目标之间的路径连通性
+      const bottomEdge = canvas.edges.find(e => e.target === connection.source);
+      if (bottomEdge) {
+        if (!hasPath(connection.target, bottomEdge.source, canvas.edges)) return;
       }
-      return false;
-    };
+    } else if (targetIsST) {
+      // 普通节点底部(source) → 定时任务底部(target)：正常流入
+      // 如果顶部已有连线，检查顶点目标和底点目标之间的路径连通性
+      const topEdge = canvas.edges.find(e => e.source === connection.target);
+      if (topEdge) {
+        if (!hasPath(topEdge.target, connection.source, canvas.edges)) return;
+      }
+    } else {
+      // 普通节点：只能有一个出边和一个入边
+      const hasOutgoing = canvas.edges.some(e => e.source === connection.source);
+      const hasIncoming = canvas.edges.some(e => e.target === connection.target);
+      if (hasOutgoing || hasIncoming) return;
 
-    if (wouldCreateCycle()) return;
+      // 防止循环
+      const wouldCreateCycle = (): boolean => {
+        let current = connection.target;
+        const visited = new Set<string>();
+        while (current) {
+          if (current === connection.source) return true;
+          if (visited.has(current)) return false;
+          visited.add(current);
+          const nextEdge = canvas.edges.find(e => e.source === current);
+          current = nextEdge ? nextEdge.target : '';
+        }
+        return false;
+      };
+      if (wouldCreateCycle()) return;
+    }
 
     const newEdges = rfAddEdge(
       { ...connection, type: 'smoothstep' },

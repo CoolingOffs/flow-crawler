@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useStore } from '../../store/useStore';
 import { exportFolderToConfig, previewJsonString } from '../../utils/exportFlow';
 import StepCard from './StepCard';
-import { PlusOutlined, FolderOpenOutlined, CopyOutlined, EditOutlined, DownOutlined, UpOutlined, GlobalOutlined, AimOutlined, ClockCircleOutlined, FileTextOutlined, LinkOutlined, CodeOutlined, ApiOutlined, BranchesOutlined, SyncOutlined, QuestionCircleOutlined, BookOutlined, StopOutlined, PlayCircleOutlined, ImportOutlined, DatabaseOutlined, EnterOutlined, ThunderboltOutlined, FunctionOutlined, BellOutlined } from '@ant-design/icons';
+import { PlusOutlined, FolderOpenOutlined, CopyOutlined, EditOutlined, DownOutlined, UpOutlined, GlobalOutlined, AimOutlined, ClockCircleOutlined, FileTextOutlined, LinkOutlined, CodeOutlined, ApiOutlined, BranchesOutlined, QuestionCircleOutlined, BookOutlined, StopOutlined, PlayCircleOutlined, ImportOutlined, DatabaseOutlined, EnterOutlined, ThunderboltOutlined, FunctionOutlined, BellOutlined } from '@ant-design/icons';
 import { Button, Modal, message, Input } from 'antd';
 import './FlowEditor.css';
 
@@ -57,7 +57,7 @@ const FlowEditor: React.FC = () => {
     .sort((a, b) => a.order - b.order);
 
   // 添加步骤
-  const handleAddStep = (type: 'openUrl' | 'clickElement' | 'wait' | 'getText' | 'getAttribute' | 'setAttribute' | 'httpRequest' | 'jsonExtract' | 'loop' | 'interceptRequest' | 'executeScript' | 'localStorage' | 'keyboardAction' | 'elementMethod' | 'variableOperation' | 'dingTalkNotify') => {
+  const handleAddStep = (type: 'openUrl' | 'clickElement' | 'wait' | 'getText' | 'getAttribute' | 'setAttribute' | 'httpRequest' | 'jsonExtract' | 'interceptRequest' | 'executeScript' | 'localStorage' | 'keyboardAction' | 'elementMethod' | 'variableOperation' | 'dingTalkNotify') => {
     if (!selectedFolderId) return;
     addStep(selectedFolderId, type);
   };
@@ -145,13 +145,6 @@ const FlowEditor: React.FC = () => {
             stepType: '本地存储',
             description: `读取 ${config.key || '...'}`,
           });
-        }
-      } else if (step.type === 'loop') {
-        // 递归提取循环子步骤中的变量
-        const loopConfig = step.config as any;
-        if (loopConfig.subSteps && loopConfig.subSteps.length > 0) {
-          const subVars = extractVariablesFromSteps(loopConfig.subSteps, currentIndex);
-          varList.push(...subVars);
         }
       }
     });
@@ -397,7 +390,6 @@ const FlowEditor: React.FC = () => {
       'setAttribute': 'setAttribute',
       'httpRequest': 'httpRequest',
       'jsonExtract': 'jsonExtract',
-      'loop': 'loop',
       'interceptRequest': 'interceptRequest',
       'executeScript': 'executeScript',
       'localStorage': 'localStorage',
@@ -625,7 +617,6 @@ const FlowEditor: React.FC = () => {
               title: '⏱️ 控制',
               items: [
                 { key: 'wait', icon: <ClockCircleOutlined />, name: '等待', desc: '等待指定秒数' },
-                { key: 'loop', icon: <SyncOutlined />, name: '循环', desc: '按次数/元素/变量循环' },
               ],
             },
             {
@@ -1023,23 +1014,6 @@ const FlowEditor: React.FC = () => {
                   </div>
                 </div>
               </div>
-
-              <div className="example-step">
-                <div className="example-icon"><SyncOutlined /></div>
-                <div className="example-content">
-                  <div className="example-title">步骤 11：循环（提取数据）</div>
-                  <div className="example-code">
-                    循环方式：<span className="code-highlight">按元素循环</span><br/>
-                    选择器类型：<span className="code-highlight">Class</span><br/>
-                    选择器值：<span className="code-highlight">product-item</span><br/>
-                    当前项变量：<span className="code-highlight">product</span><br/><br/>
-                    <strong>子步骤：</strong><br/>
-                    ├─ 获取文本（商品名称）→ <span className="code-highlight">productName</span><br/>
-                    ├─ 获取文本（价格）→ <span className="code-highlight">productPrice</span><br/>
-                    └─ 获取属性（链接 href）→ <span className="code-highlight">productLink</span>
-                  </div>
-                </div>
-              </div>
             </div>
 
             <div className="tutorial-tip">
@@ -1047,7 +1021,6 @@ const FlowEditor: React.FC = () => {
               <ul style={{ margin: '8px 0 0 0', paddingLeft: 20 }}>
                 <li>步骤 8 先点击查询按钮，触发数据请求</li>
                 <li>步骤 9 使用"拦截请求"拦截查询请求，修改分页参数，强制返回 100 条数据</li>
-                <li>步骤 11 使用循环批量提取页面数据</li>
                 <li>所有变量都可在后续步骤中用 <code>{'${变量名}'}</code> 引用</li>
               </ul>
             </div>
@@ -1110,13 +1083,6 @@ const FlowEditor: React.FC = () => {
                 <div>
                   <strong>JSON 提取</strong>
                   <p>解析 JSON 数据</p>
-                </div>
-              </div>
-              <div className="type-item">
-                <SyncOutlined className="type-icon" />
-                <div>
-                  <strong>循环</strong>
-                  <p>批量处理数据</p>
                 </div>
               </div>
             </div>

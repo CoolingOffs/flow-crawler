@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Step, STEP_TYPES, SELECTOR_TYPES, OpenUrlConfig, ClickElementConfig, WaitConfig, GetTextConfig, GetAttributeConfig, SetAttributeConfig, HttpRequestConfig, JsonExtractConfig, LoopConfig, InterceptRequestConfig, ExecuteScriptConfig, LocalStorageConfig, KeyboardActionConfig, ElementMethodConfig, VariableOperationConfig, DingTalkNotifyConfig } from '../../types';
+import { Step, STEP_TYPES, SELECTOR_TYPES, OpenUrlConfig, ClickElementConfig, WaitConfig, GetTextConfig, GetAttributeConfig, SetAttributeConfig, HttpRequestConfig, JsonExtractConfig, InterceptRequestConfig, ExecuteScriptConfig, LocalStorageConfig, KeyboardActionConfig, ElementMethodConfig, VariableOperationConfig, DingTalkNotifyConfig } from '../../types';
 import { useStore } from '../../store/useStore';
 import { Card, Select, Input, InputNumber, Button, Space, AutoComplete, Switch } from 'antd';
 import { 
@@ -14,7 +14,6 @@ import {
   EditOutlined,
   ApiOutlined,
   BranchesOutlined,
-  SyncOutlined,
   StopOutlined,
   EyeOutlined,
   CodeOutlined,
@@ -131,8 +130,6 @@ const StepCard: React.FC<StepCardProps> = ({ step, index, total, parentId }) => 
         return <ApiOutlined />;
       case 'jsonExtract':
         return <BranchesOutlined />;
-      case 'loop':
-        return <SyncOutlined />;
       case 'interceptRequest':
         return <StopOutlined />;
       case 'executeScript':
@@ -533,140 +530,6 @@ const StepCard: React.FC<StepCardProps> = ({ step, index, total, parentId }) => 
                 onChange={(e) => handleUpdateConfig({ variableName: e.target.value })}
               />
               <span className="hint">（提取的结果将存入此变量）</span>
-            </div>
-          </div>
-        );
-
-      case 'loop':
-        const loopConfig = step.config as LoopConfig;
-        return (
-          <div className="config-form">
-            <div className="form-item">
-              <label>循环方式：</label>
-              <Select
-                value={loopConfig.loopType}
-                onChange={(value) => handleUpdateConfig({ loopType: value })}
-                style={{ width: '100%' }}
-              >
-                <Option value="count">按次数循环</Option>
-                <Option value="selector">按元素循环</Option>
-                <Option value="variable">按变量数据循环</Option>
-              </Select>
-            </div>
-
-            {loopConfig.loopType === 'count' && (
-              <div className="form-item">
-                <label>循环次数：</label>
-                <InputNumber
-                  min={1}
-                  max={1000}
-                  value={loopConfig.count}
-                  onChange={(value) => handleUpdateConfig({ count: value || 10 })}
-                  style={{ width: 120 }}
-                />
-                <span className="hint">（1-1000 次）</span>
-              </div>
-            )}
-
-            {loopConfig.loopType === 'selector' && (
-              <>
-                <div className="form-item">
-                  <label>选择器类型：</label>
-                  <Select
-                    value={loopConfig.selectorType}
-                    onChange={(value) => handleUpdateConfig({ selectorType: value })}
-                    style={{ width: '100%' }}
-                  >
-                    {Object.entries(SELECTOR_TYPES).map(([value, label]) => (
-                      <Option key={value} value={value}>{label}</Option>
-                    ))}
-                  </Select>
-                </div>
-                <div className="form-item">
-                  <label>选择器值：</label>
-                  <Input
-                    placeholder="例如：product-item"
-                    value={loopConfig.selectorValue}
-                    onChange={(e) => handleUpdateConfig({ selectorValue: e.target.value })}
-                  />
-                  <span className="hint">（将循环每个匹配的元素）</span>
-                </div>
-              </>
-            )}
-
-            {loopConfig.loopType === 'variable' && (
-              <div className="form-item">
-                <label>数据源变量：</label>
-                <Input
-                  placeholder="例如：products"
-                  value={loopConfig.variableSource}
-                  onChange={(e) => handleUpdateConfig({ variableSource: e.target.value })}
-                />
-                <span className="hint">（从变量中读取数组数据，如之前提取的结果）</span>
-              </div>
-            )}
-
-            {loopConfig.loopType !== 'count' && (
-              <div className="form-item">
-                <label>当前项变量：</label>
-                <Input
-                  placeholder="例如：item"
-                  value={loopConfig.itemName}
-                  onChange={(e) => handleUpdateConfig({ itemName: e.target.value })}
-                />
-                <span className="hint">（子步骤中可使用此变量引用当前项）</span>
-              </div>
-            )}
-
-            <div className="form-item">
-              <label>子步骤：</label>
-              <div className="loop-substeps-container">
-                {loopConfig.subSteps && loopConfig.subSteps.length > 0 ? (
-                  <div className="substeps-list">
-                    {loopConfig.subSteps.map((subStep, subIndex) => (
-                      <StepCard
-                        key={subStep.id}
-                        step={subStep}
-                        index={subIndex}
-                        total={loopConfig.subSteps.length}
-                        parentId={step.id}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="loop-substeps-empty">
-                    <SyncOutlined /> 暂无子步骤，点击下方按钮添加
-                  </div>
-                )}
-                
-                <Select
-                  placeholder="+ 添加子步骤"
-                  onChange={(value) => {
-                    if (value) {
-                      addSubStep(step.id, value as any);
-                    }
-                  }}
-                  style={{ width: '100%', marginTop: 8 }}
-                  value={undefined}
-                >
-                  <Option value="openUrl">打开网址</Option>
-                  <Option value="clickElement">点击元素</Option>
-                  <Option value="wait">等待</Option>
-                  <Option value="getText">获取文本</Option>
-                  <Option value="getAttribute">获取属性</Option>
-                  <Option value="setAttribute">设置属性</Option>
-                  <Option value="httpRequest">HTTP 请求</Option>
-                  <Option value="jsonExtract">JSON 提取</Option>
-                  <Option value="interceptRequest">拦截请求</Option>
-                  <Option value="executeScript">注入 JS</Option>
-                  <Option value="localStorage">本地存储</Option>
-                  <Option value="keyboardAction">键盘操作</Option>
-                  <Option value="elementMethod">调用方法</Option>
-                  <Option value="variableOperation">变量操作</Option>
-                  <Option value="dingTalkNotify">钉钉推送</Option>
-                </Select>
-              </div>
-              <span className="hint">（子步骤将在每次循环时执行）</span>
             </div>
           </div>
         );

@@ -15,14 +15,14 @@ export type StepType =
   | 'setAttribute'
   | 'httpRequest'
   | 'jsonExtract'
-  | 'loop'
   | 'interceptRequest'
   | 'executeScript'
   | 'localStorage'
   | 'keyboardAction'
   | 'elementMethod'
   | 'variableOperation'
-  | 'dingTalkNotify';
+  | 'dingTalkNotify'
+  | 'scheduledTask';
 
 // 节点携带的数据
 export interface FlowNodeData {

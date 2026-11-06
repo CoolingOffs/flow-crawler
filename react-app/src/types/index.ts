@@ -12,7 +12,7 @@ export interface Step {
   id: string;
   folderId: string;
   order: number;                          // 执行顺序
-  type: 'openUrl' | 'clickElement' | 'wait' | 'getText' | 'getAttribute' | 'setAttribute' | 'httpRequest' | 'jsonExtract' | 'loop' | 'interceptRequest' | 'executeScript' | 'localStorage' | 'keyboardAction' | 'elementMethod' | 'variableOperation' | 'dingTalkNotify';
+  type: 'openUrl' | 'clickElement' | 'wait' | 'getText' | 'getAttribute' | 'setAttribute' | 'httpRequest' | 'jsonExtract' | 'interceptRequest' | 'executeScript' | 'localStorage' | 'keyboardAction' | 'elementMethod' | 'variableOperation' | 'dingTalkNotify' | 'scheduledTask';
   name: string;                           // 步骤名称
   config: StepConfig;
   remark?: string;                        // 步骤备注
@@ -23,7 +23,7 @@ export interface Step {
 }
 
 // 步骤配置类型
-export type StepConfig = OpenUrlConfig | ClickElementConfig | WaitConfig | GetTextConfig | GetAttributeConfig | SetAttributeConfig | HttpRequestConfig | JsonExtractConfig | LoopConfig | InterceptRequestConfig | ExecuteScriptConfig | LocalStorageConfig | KeyboardActionConfig | ElementMethodConfig | VariableOperationConfig | DingTalkNotifyConfig;
+export type StepConfig = OpenUrlConfig | ClickElementConfig | WaitConfig | GetTextConfig | GetAttributeConfig | SetAttributeConfig | HttpRequestConfig | JsonExtractConfig | InterceptRequestConfig | ExecuteScriptConfig | LocalStorageConfig | KeyboardActionConfig | ElementMethodConfig | VariableOperationConfig | DingTalkNotifyConfig | ScheduledTaskConfig;
 
 // 打开网址配置
 export interface OpenUrlConfig {
@@ -87,17 +87,6 @@ export interface JsonExtractConfig {
   extractAll: boolean;                    // 是否提取所有匹配结果（数组）
 }
 
-// 循环配置
-export interface LoopConfig {
-  loopType: 'selector' | 'variable' | 'count';  // 循环方式：按元素/按变量/按次数
-  selectorType: 'id' | 'class' | 'selector';
-  selectorValue: string;
-  variableSource: string;                 // 循环数据源变量（如 ${products}）
-  itemName: string;                       // 当前项变量名（如 item）
-  count: number;                          // 循环次数
-  subSteps: Step[];                       // 子步骤列表
-}
-
 // 拦截请求配置
 export interface InterceptRequestConfig {
   urlPattern: string;                     // URL 匹配模式（如 */api/products/*）
@@ -156,6 +145,14 @@ export interface DingTalkNotifyConfig {
   content: string;                        // 消息内容模板（支持 ${变量}）
 }
 
+// 定时任务配置
+export interface ScheduledTaskConfig {
+  run_type: 'cron' | 'once';             // 执行时机
+  cron_expression: string;               // Cron 表达式
+  execute_once_time: string;             // 执行一次的时间（如 2026-11-04 17:15:00）
+  max_trigger_count: number;             // 最大触发次数（防止无限触发）
+}
+
 // 步骤类型选项
 export const STEP_TYPES = {
   openUrl: '打开网址',
@@ -166,7 +163,6 @@ export const STEP_TYPES = {
   setAttribute: '设置属性',
   httpRequest: 'HTTP 请求',
   jsonExtract: 'JSON 提取',
-  loop: '循环',
   interceptRequest: '拦截请求',
   executeScript: '注入 JS',
   localStorage: '本地存储',
@@ -174,6 +170,7 @@ export const STEP_TYPES = {
   elementMethod: '调用方法',
   variableOperation: '变量操作',
   dingTalkNotify: '钉钉推送',
+  scheduledTask: '定时任务',
 } as const;
 
 // 选择器类型选项

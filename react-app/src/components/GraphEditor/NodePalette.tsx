@@ -12,13 +12,13 @@ import {
   CodeOutlined,
   ApiOutlined,
   BranchesOutlined,
-  SyncOutlined,
   StopOutlined,
   DatabaseOutlined,
   EnterOutlined,
   ThunderboltOutlined,
   FunctionOutlined,
   BellOutlined,
+  ScheduleOutlined,
 } from '@ant-design/icons';
 import './NodePalette.css';
 
@@ -50,7 +50,7 @@ const NODE_GROUPS = [
     name: '⏱️ 控制',
     items: [
       { type: 'wait', icon: <ClockCircleOutlined />, name: '等待' },
-      { type: 'loop', icon: <SyncOutlined />, name: '循环' },
+      { type: 'scheduledTask', icon: <ScheduleOutlined />, name: '定时任务' },
     ],
   },
   {

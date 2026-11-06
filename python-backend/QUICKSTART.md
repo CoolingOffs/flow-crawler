@@ -91,6 +91,13 @@ print(f"变量: {result['variables']}")
 | `jsonExtract` | JSON 提取 | 使用 JSONPath 提取数据 |
 | `loop` | 循环 | 循环执行子命令 |
 | `interceptRequest` | 拦截请求 | 拦截并修改请求 |
+| `executeScript` | 注入 JS | 在页面中执行 JavaScript |
+| `localStorage` | 本地存储 | 保存/读取变量值 |
+| `keyboardAction` | 键盘操作 | 模拟 Enter/Tab 等按键 |
+| `elementMethod` | 调用方法 | 调用 focus/scrollIntoView 等 |
+| `variableOperation` | 变量操作 | 模板拼接/数学运算/正则等 |
+| `dingTalkNotify` | 钉钉推送 | Webhook 发送通知到钉钉群 |
+| `scheduledTask` | 定时任务 | Cron 定时/指定时间触发 |
 
 ## 🔧 变量使用
 

@@ -188,6 +188,135 @@ python server.py
 }
 ```
 
+### 11. executeScript - 注入 JS
+```json
+{
+  "action": "executeScript",
+  "data": {
+    "script": "document.title = 'Modified Title';"
+  }
+}
+```
+
+### 12. localStorage - 本地存储
+```json
+{
+  "action": "localStorage",
+  "data": {
+    "key": "userToken",
+    "value": "${token}",
+    "storageType": "local",
+    "action": "set",
+    "variableName": ""
+  }
+}
+```
+
+**参数：**
+- `key` - 存储键名
+- `value` - 存储值（支持 `${变量}` 引用）
+- `storageType` - `local`（持久化）或 `session`（会话内存）
+- `action` - `set`（写入）或 `get`（读取）
+- `variableName` - 读取时存入的变量名（action=get 时使用）
+
+### 13. keyboardAction - 键盘操作
+```json
+{
+  "action": "keyboardAction",
+  "data": {
+    "key": "Enter",
+    "selector": "#search-input",
+    "modifiers": [],
+    "pressCount": 1
+  }
+}
+```
+
+**参数：**
+- `key` - 按键名（Enter, Tab, Escape, ArrowDown 等）
+- `selector` - 目标元素选择器（可选，先聚焦再按键）
+- `modifiers` - 修饰键数组（Ctrl, Shift, Alt, Meta）
+- `pressCount` - 按键次数
+
+### 14. elementMethod - 调用方法
+```json
+{
+  "action": "elementMethod",
+  "data": {
+    "selector": "#username",
+    "method": "focus",
+    "args": "",
+    "waitAfter": 0
+  }
+}
+```
+
+**参数：**
+- `selector` - CSS 选择器
+- `method` - 方法名（focus, dblclick, scrollIntoView, click, blur, select 等）
+- `args` - 方法参数（可选，JSON 格式）
+- `waitAfter` - 调用后等待秒数
+
+### 15. variableOperation - 变量操作
+```json
+{
+  "action": "variableOperation",
+  "data": {
+    "operation": "template",
+    "sourceVariable": "productName",
+    "resultVariable": "greeting",
+    "operand": "您好，${productName}！",
+    "operand2": ""
+  }
+}
+```
+
+**支持的操作：**
+- `template` - 模板拼接
+- `math` - 数学运算
+- `jsonParse` / `jsonStringify` - JSON 解析/字符串化
+- `regex` / `regexReplace` - 正则提取/替换
+- `replace` - 字符串替换
+- `split` / `join` - 分割/合并
+- `length` - 取长度
+- `default` - 默认值
+
+### 16. dingTalkNotify - 钉钉推送
+```json
+{
+  "action": "dingTalkNotify",
+  "data": {
+    "accessToken": "your_webhook_token",
+    "msgType": "markdown",
+    "title": "采集报告",
+    "content": "共采集 ${count} 条数据"
+  }
+}
+```
+
+### 17. scheduledTask - 定时任务
+```json
+{
+  "action": "scheduledTask",
+  "data": {
+    "run_type": "cron",
+    "cron_expression": "*/5 * * * *",
+    "execute_once_time": "",
+    "max_trigger_count": 10,
+    "_loop_start_index": 1,
+    "_loop_end_index": 4
+  }
+}
+```
+
+**参数：**
+- `run_type` - `cron`（Cron 表达式）或 `once`（指定时间执行一次）
+- `cron_expression` - Cron 表达式（如 `*/5 * * * *` 每 5 分钟）
+- `execute_once_time` - 指定时间（如 `2026-11-06 12:00:00`）
+- `max_trigger_count` - 最大触发次数（防止无限触发）
+- `_loop_start_index` - 循环起始步骤索引（由前端自动计算）
+- `_loop_end_index` - 循环结束步骤索引（由前端自动计算）
+
 ## 🔧 变量系统
 
 使用 `${变量名}` 语法引用变量：
@@ -340,6 +469,7 @@ console_handler.setLevel(logging.INFO)  # 改为 DEBUG 查看更多细节
 - `fastapi`: Web API 框架
 - `uvicorn`: ASGI 服务器
 - `pydantic`: 数据验证
+- `croniter`: Cron 表达式解析（定时任务）
 
 ## 📄 许可证
 

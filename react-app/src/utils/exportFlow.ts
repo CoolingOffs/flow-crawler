@@ -90,27 +90,6 @@ const convertNodeToCommand = (nodeData: FlowNodeData): ExportedCommand => {
         return { action: 'jsonExtract', data: { sourceVariable: jsonConfig.sourceVariable, jsonPath: jsonConfig.jsonPath, variableName: jsonConfig.variableName, extractAll: jsonConfig.extractAll } };
       }
 
-      case 'loop': {
-        const loopConfig = config as any;
-        let loopSelector = '';
-        if (loopConfig.loopType === 'selector') {
-          loopSelector = loopConfig.selectorValue;
-          if (loopConfig.selectorType === 'class') loopSelector = `.${loopConfig.selectorValue}`;
-          else if (loopConfig.selectorType === 'id') loopSelector = `#${loopConfig.selectorValue}`;
-        }
-        return {
-          action: 'loop',
-          data: {
-            loopType: loopConfig.loopType,
-            querySelector: loopSelector,
-            variableSource: loopConfig.variableSource,
-            itemName: loopConfig.itemName,
-            count: loopConfig.count,
-            commands: [], // 循环体内的命令由连线决定
-          },
-        };
-      }
-
       case 'interceptRequest': {
         const interceptConfig = config as any;
         return {
@@ -155,6 +134,19 @@ const convertNodeToCommand = (nodeData: FlowNodeData): ExportedCommand => {
         return { action: 'dingTalkNotify', data: { accessToken: dingConfig.accessToken, msgType: dingConfig.msgType, title: dingConfig.title, content: dingConfig.content } };
       }
 
+      case 'scheduledTask': {
+        const scheduleConfig = config as any;
+        return {
+          action: 'scheduledTask',
+          data: {
+            run_type: scheduleConfig.run_type || 'cron',
+            cron_expression: scheduleConfig.cron_expression || '',
+            execute_once_time: scheduleConfig.execute_once_time || '',
+            max_trigger_count: scheduleConfig.max_trigger_count || 10,
+          },
+        };
+      }
+
       default:
         return { action: 'unknown', data: {} };
     }
@@ -182,59 +174,6 @@ const safeParseJson = (str: string, fallback: any): any => {
 };
 
 /**
- * 拓扑排序：根据边的关系将节点排序为执行顺序
- * 使用 Kahn 算法（入度排序）
- */
-const topologicalSort = (nodes: FlowNode[], edges: FlowEdge[]): FlowNode[] => {
-  if (nodes.length === 0) return [];
-
-  // 构建邻接表和入度表
-  const inDegree = new Map<string, number>();
-  const adjacency = new Map<string, string[]>();
-
-  nodes.forEach(n => {
-    inDegree.set(n.id, 0);
-    adjacency.set(n.id, []);
-  });
-
-  edges.forEach(e => {
-    adjacency.get(e.source)?.push(e.target);
-    inDegree.set(e.target, (inDegree.get(e.target) || 0) + 1);
-  });
-
-  // BFS
-  const queue: string[] = [];
-  inDegree.forEach((deg, id) => {
-    if (deg === 0) queue.push(id);
-  });
-
-  const sorted: FlowNode[] = [];
-  const nodeMap = new Map(nodes.map(n => [n.id, n]));
-
-  while (queue.length > 0) {
-    const currentId = queue.shift()!;
-    const node = nodeMap.get(currentId);
-    if (node) sorted.push(node);
-
-    const neighbors = adjacency.get(currentId) || [];
-    neighbors.forEach(neighborId => {
-      const newDeg = (inDegree.get(neighborId) || 1) - 1;
-      inDegree.set(neighborId, newDeg);
-      if (newDeg === 0) queue.push(neighborId);
-    });
-  }
-
-  // 如果排序结果不包含所有节点（有环），按位置 Y 坐标排序兜底
-  if (sorted.length < nodes.length) {
-    const missing = nodes.filter(n => !sorted.find(s => s.id === n.id));
-    missing.sort((a, b) => a.position.y - b.position.y);
-    sorted.push(...missing);
-  }
-
-  return sorted;
-};
-
-/**
  * 将画布数据导出为配置（图编辑器版本）
  */
 export const exportCanvasToConfig = (
@@ -243,17 +182,67 @@ export const exportCanvasToConfig = (
   edges: FlowEdge[],
   nodeOrderMap?: Map<string, number>
 ): ExportedFlowConfig => {
-  // 拓扑排序（disabled 节点不参与执行，但保留链条）
+  // 按 _order 排序（节点创建时已固定序号）
   const sortedNodes = nodeOrderMap
     ? [...nodes].sort(
         (a, b) => (nodeOrderMap.get(a.id) || 0) - (nodeOrderMap.get(b.id) || 0)
       )
-    : topologicalSort(nodes, edges);
+    : [...nodes].sort((a, b) => {
+        const oa = (a.data as any)?._order || 0;
+        const ob = (b.data as any)?._order || 0;
+        return oa - ob || a.position.y - b.position.y;
+      });
 
-  // 过滤掉 disabled 节点，转换为命令列表
-  const commands: ExportedCommand[] = sortedNodes
-    .filter(n => !(n.data as unknown as FlowNodeData).disabled)
-    .map(n => convertNodeToCommand(n.data as unknown as FlowNodeData));
+  // 过滤掉 disabled 节点
+  const activeNodes = sortedNodes.filter(
+    n => !(n.data as unknown as FlowNodeData).disabled
+  );
+
+  // 转换为命令列表
+  const commands: ExportedCommand[] = activeNodes.map(
+    n => convertNodeToCommand(n.data as unknown as FlowNodeData)
+  );
+
+  // 根据图的连线关系，为定时任务计算循环范围
+  // 规则：
+  //   - 定时任务顶部(source)出线 = 回边，目标是循环起始步骤
+  //   - 定时任务底部(target)入线 = 循环结束步骤
+  const activeNodeIds = new Set(activeNodes.map(n => n.id));
+
+  activeNodes.forEach((node, nodeIndex) => {
+    const data = node.data as unknown as FlowNodeData;
+    if (data.stepType !== 'scheduledTask') return;
+
+    const schedNodeId = node.id;
+
+    // 定时任务顶部出线(source) = 回边，目标是循环起始步骤
+    const backEdges = edges.filter(
+      e => e.source === schedNodeId && activeNodeIds.has(e.target)
+    );
+
+    if (backEdges.length === 0) {
+      commands[nodeIndex].data._loop_start_index = -1;
+      commands[nodeIndex].data._loop_end_index = -1;
+      return;
+    }
+
+    // 取第一个回边目标作为循环起始
+    const loopStartIndex = activeNodes.findIndex(n => n.id === backEdges[0].target);
+
+    // 定时任务底部(target)入线 = 循环结束步骤
+    const sourceEdges = edges.filter(
+      e => e.target === schedNodeId && activeNodeIds.has(e.source)
+    );
+
+    let loopEndIndex = -1;
+    for (const se of sourceEdges) {
+      const idx = activeNodes.findIndex(n => n.id === se.source);
+      if (idx > loopEndIndex) loopEndIndex = idx;
+    }
+
+    commands[nodeIndex].data._loop_start_index = loopStartIndex >= 0 ? loopStartIndex : -1;
+    commands[nodeIndex].data._loop_end_index = loopEndIndex >= 0 ? loopEndIndex : -1;
+  });
 
   const action: ExportedAction = {
     id: 1,

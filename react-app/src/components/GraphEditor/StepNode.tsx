@@ -14,7 +14,6 @@ import {
   CodeOutlined,
   ApiOutlined,
   BranchesOutlined,
-  SyncOutlined,
   StopOutlined,
   DatabaseOutlined,
   EnterOutlined,
@@ -22,6 +21,7 @@ import {
   FunctionOutlined,
   BellOutlined,
   FormOutlined,
+  ScheduleOutlined,
 } from '@ant-design/icons';
 import './StepNode.css';
 
@@ -29,6 +29,7 @@ const StepNode: React.FC<NodeProps> = ({ data, selected, id }) => {
   const nodeData = data as unknown as FlowNodeData & { executionOrder?: number };
   const isDisabled = nodeData.disabled;
   const order = nodeData.executionOrder;
+  const isScheduledTask = nodeData.stepType === 'scheduledTask';
 
   // 渲染图标
   const renderIcon = () => {
@@ -41,7 +42,6 @@ const StepNode: React.FC<NodeProps> = ({ data, selected, id }) => {
       case 'setAttribute': return <CodeOutlined />;
       case 'httpRequest': return <ApiOutlined />;
       case 'jsonExtract': return <BranchesOutlined />;
-      case 'loop': return <SyncOutlined />;
       case 'interceptRequest': return <StopOutlined />;
       case 'executeScript': return <CodeOutlined />;
       case 'localStorage': return <DatabaseOutlined />;
@@ -49,6 +49,7 @@ const StepNode: React.FC<NodeProps> = ({ data, selected, id }) => {
       case 'elementMethod': return <ThunderboltOutlined />;
       case 'variableOperation': return <FunctionOutlined />;
       case 'dingTalkNotify': return <BellOutlined />;
+      case 'scheduledTask': return <ScheduleOutlined />;
       default: return null;
     }
   };
@@ -66,7 +67,6 @@ const StepNode: React.FC<NodeProps> = ({ data, selected, id }) => {
       case 'setAttribute': return `${config.attributeName} = ${truncate(config.attributeValue || '', 15)}`;
       case 'httpRequest': return `${config.method || 'GET'} ${truncate(config.url || '', 25)}`;
       case 'jsonExtract': return `${config.jsonPath || '$.'} → ${config.variableName || '变量'}`;
-      case 'loop': return config.loopType === 'count' ? `循环 ${config.count} 次` : `循环: ${config.loopType}`;
       case 'interceptRequest': return truncate(config.urlPattern || '未配置', 30);
       case 'executeScript': return config.script ? truncate(config.script, 30) : '未配置脚本';
       case 'localStorage': return `${config.action || 'set'}: ${config.key || '未配置'}`;
@@ -74,6 +74,7 @@ const StepNode: React.FC<NodeProps> = ({ data, selected, id }) => {
       case 'elementMethod': return `.${config.method || 'focus'}()`;
       case 'variableOperation': return `${config.operation || 'template'} → ${config.resultVariable || '变量'}`;
       case 'dingTalkNotify': return config.msgType === 'markdown' ? 'Markdown 消息' : '文本消息';
+      case 'scheduledTask': return config.run_type === 'cron' ? `Cron: ${truncate(config.cron_expression || '', 20)}` : `定时: ${config.execute_once_time || '未设置'}`;
       default: return '';
     }
   };
@@ -88,11 +89,12 @@ const StepNode: React.FC<NodeProps> = ({ data, selected, id }) => {
         <div className="step-node-order">{order}</div>
       )}
 
-      {/* 顶部入口 */}
+      {/* 顶部：定时任务=出口(source) / 普通节点=入口(target) */}
       <Handle
-        type="target"
+        type={isScheduledTask ? 'source' : 'target'}
         position={Position.Top}
         className="step-node-handle"
+        isConnectable={true}
       />
 
       {/* 节点头部 */}
@@ -115,11 +117,12 @@ const StepNode: React.FC<NodeProps> = ({ data, selected, id }) => {
         </div>
       )}
 
-      {/* 底部出口 */}
+      {/* 底部：定时任务=入口(target) / 普通节点=出口(source) */}
       <Handle
-        type="source"
+        type={isScheduledTask ? 'target' : 'source'}
         position={Position.Bottom}
         className="step-node-handle"
+        isConnectable={true}
       />
     </div>
   );

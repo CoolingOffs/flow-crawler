@@ -38,17 +38,21 @@
 
 /* 连接手柄 */
 .step-node-handle {
-  width: 10px;
-  height: 10px;
+  width: 14px !important;
+  height: 14px !important;
   background: #1677ff;
   border: 2px solid #fff;
   box-shadow: 0 0 4px rgba(22, 119, 255, 0.3);
+  min-width: 14px;
+  min-height: 14px;
+  z-index: 10 !important;
 }
 
 .step-node-handle:hover {
-  width: 12px;
-  height: 12px;
+  width: 16px !important;
+  height: 16px !important;
   background: #0958d9;
+  z-index: 11 !important;
 }
 
 /* 执行编号 */

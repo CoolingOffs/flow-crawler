@@ -14,7 +14,6 @@ const STEP_NAME_MAP: Record<string, string> = {
   setAttribute: '设置属性',
   httpRequest: 'HTTP 请求',
   jsonExtract: 'JSON 提取',
-  loop: '循环',
   interceptRequest: '拦截请求',
   executeScript: '注入 JS',
   localStorage: '本地存储',
@@ -41,7 +40,6 @@ const DEFAULT_CONFIG_MAP: Record<string, any> = {
   variableOperation: { operation: 'template', sourceVariable: '', resultVariable: '', operand: '', operand2: '' },
   dingTalkNotify: { accessToken: '', msgType: 'text', title: '', content: '' },
   interceptRequest: { urlPattern: '', method: 'ALL', modifyHeaders: '', modifyBody: '', modifyResponse: '', variableName: 'interceptedData', continueRequest: true },
-  loop: { loopType: 'count', selectorType: 'class', selectorValue: '', variableSource: '', itemName: 'item', count: 10, subSteps: [] },
 };
 
 /**
@@ -60,6 +58,7 @@ export const migrateStepsToCanvas = (steps: Step[]): CanvasData => {
       remark: step.remark,
       logPrint: step.logPrint,
       disabled: step.disabled,
+      _order: index + 1,
     };
 
     const node: FlowNode = {

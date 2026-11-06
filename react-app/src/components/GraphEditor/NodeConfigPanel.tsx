@@ -28,33 +28,8 @@ const NodeConfigPanel: React.FC = () => {
   const data = node.data as unknown as FlowNodeData;
   const config = data.config as any;
 
-  // 计算当前节点的执行编号
-  const executionOrder = useMemo(() => {
-    const inDegree = new Map<string, number>();
-    const adjacency = new Map<string, string[]>();
-    canvas.nodes.forEach(n => {
-      inDegree.set(n.id, 0);
-      adjacency.set(n.id, []);
-    });
-    canvas.edges.forEach(e => {
-      adjacency.get(e.source)?.push(e.target);
-      inDegree.set(e.target, (inDegree.get(e.target) || 0) + 1);
-    });
-    const queue: string[] = [];
-    inDegree.forEach((deg, id) => { if (deg === 0) queue.push(id); });
-    let order = 1;
-    const orderMap = new Map<string, number>();
-    while (queue.length > 0) {
-      const current = queue.shift()!;
-      orderMap.set(current, order++);
-      (adjacency.get(current) || []).forEach(nid => {
-        const newDeg = (inDegree.get(nid) || 1) - 1;
-        inDegree.set(nid, newDeg);
-        if (newDeg === 0) queue.push(nid);
-      });
-    }
-    return orderMap.get(selectedNodeId) || '-';
-  }, [canvas, selectedNodeId]);
+  // 直接从节点数据读取固定序号
+  const executionOrder = (data as any)._order || '-';
 
   const handleUpdateConfig = (partial: Partial<StepConfig>) => {
     updateNodeConfig(selectedNodeId, partial);
@@ -109,7 +84,7 @@ const NodeConfigPanel: React.FC = () => {
       {/* 配置表单 */}
       <div className="panel-body">
         <div className="config-form">
-          {renderConfigForm(data.stepType, config, handleUpdateConfig)}
+          {renderConfigForm(data.stepType, config, handleUpdateConfig, { nodeId: selectedNodeId!, canvas, executionOrder })}
         </div>
 
         {/* 步骤增强选项 */}
@@ -163,9 +138,96 @@ const NodeConfigPanel: React.FC = () => {
 };
 
 /**
+ * 定时任务循环范围信息组件
+ * 显示连接的节点序号、名称和包含的流程
+ */
+function LoopRangeInfo({ nodeId, canvas }: { nodeId: string; canvas: any }) {
+  const edges: any[] = canvas?.edges || [];
+  const nodes: any[] = canvas?.nodes || [];
+
+  // 顶部出线(source) → 循环起点
+  const topEdge = edges.find((e: any) => e.source === nodeId);
+  // 底部入线(target) ← 循环终点
+  const bottomEdge = edges.find((e: any) => e.target === nodeId);
+
+  const startNode = topEdge ? nodes.find((n: any) => n.id === topEdge.target) : null;
+  const endNode = bottomEdge ? nodes.find((n: any) => n.id === bottomEdge.source) : null;
+
+  // 追踪路径中的节点（BFS，不经过定时任务本身）
+  const pathNodes = useMemo(() => {
+    if (!startNode || !endNode) return [];
+    const result: { id: string; name: string; order: number }[] = [];
+    const visited = new Set<string>();
+    const queue = [startNode.id];
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      if (visited.has(current)) continue;
+      visited.add(current);
+      const node = nodes.find((n: any) => n.id === current);
+      if (node) {
+        result.push({ id: current, name: (node.data as any).name, order: (node.data as any)._order || 0 });
+      }
+      if (current === endNode.id) break;
+      const nextEdges = edges.filter((e: any) => e.source === current && e.target !== nodeId);
+      for (const ne of nextEdges) {
+        if (!visited.has(ne.target)) queue.push(ne.target);
+      }
+    }
+    return result;
+  }, [startNode, endNode, nodes, edges, nodeId]);
+
+  const startOrder = startNode ? ((startNode.data as any)._order || '?') : null;
+  const endOrder = endNode ? ((endNode.data as any)._order || '?') : null;
+
+  if (!startNode && !endNode) {
+    return (
+      <div className="form-item">
+        <div className="loop-range-box">
+          <div className="loop-range-title">↻ 循环范围</div>
+          <div className="loop-range-empty">⬆ 顶部未连接 &nbsp; ⬇ 底部未连接</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="form-item">
+      <div className="loop-range-box">
+        <div className="loop-range-title">↻ 循环范围</div>
+        {startNode && endNode ? (
+          <>
+            <div className="loop-range-row">
+              <span className="loop-range-badge">#{startOrder}</span>
+              <span className="loop-range-name">{(startNode.data as any).name}</span>
+              <span className="loop-range-arrow">→</span>
+              <span className="loop-range-badge">#{endOrder}</span>
+              <span className="loop-range-name">{(endNode.data as any).name}</span>
+            </div>
+            {pathNodes.length > 0 && (
+              <div className="loop-range-steps">
+                {pathNodes.map((n, i) => (
+                  <span key={n.id} className="loop-step-tag">
+                    #{n.order} {n.name}{i < pathNodes.length - 1 ? ' →' : ''}
+                  </span>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="loop-range-empty">
+            {!startNode && <span>⬆ 顶部未连接 </span>}
+            {!endNode && <span>⬇ 底部未连接</span>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
  * 渲染配置表单（复用 16 种步骤类型）
  */
-function renderConfigForm(stepType: string, config: any, onUpdate: (partial: any) => void): React.ReactNode {
+function renderConfigForm(stepType: string, config: any, onUpdate: (partial: any) => void, ctx: { nodeId: string; canvas: any; executionOrder: number | string }): React.ReactNode {
   switch (stepType) {
     case 'openUrl':
       return (
@@ -363,53 +425,6 @@ function renderConfigForm(stepType: string, config: any, onUpdate: (partial: any
             <label>提取全部：</label>
             <Switch checked={config.extractAll} onChange={(v) => onUpdate({ extractAll: v })} />
           </div>
-        </>
-      );
-
-    case 'loop':
-      return (
-        <>
-          <div className="form-item">
-            <label>循环类型：</label>
-            <Select value={config.loopType} onChange={(v) => onUpdate({ loopType: v })} style={{ width: '100%' }}>
-              <Option value="count">按次数</Option>
-              <Option value="selector">按元素</Option>
-              <Option value="variable">按变量</Option>
-            </Select>
-          </div>
-          {config.loopType === 'count' && (
-            <div className="form-item">
-              <label>循环次数：</label>
-              <InputNumber min={1} value={config.count} onChange={(v) => onUpdate({ count: v || 1 })} style={{ width: '100%' }} />
-            </div>
-          )}
-          {config.loopType === 'selector' && (
-            <>
-              <div className="form-item">
-                <label>选择器类型：</label>
-                <Select value={config.selectorType} onChange={(v) => onUpdate({ selectorType: v })} style={{ width: '100%' }}>
-                  <Option value="id">ID</Option>
-                  <Option value="class">Class</Option>
-                  <Option value="selector">CSS 选择器</Option>
-                </Select>
-              </div>
-              <div className="form-item">
-                <label>选择器值：</label>
-                <Input value={config.selectorValue} onChange={(e) => onUpdate({ selectorValue: e.target.value })} />
-              </div>
-            </>
-          )}
-          {config.loopType === 'variable' && (
-            <div className="form-item">
-              <label>数据源变量：</label>
-              <Input value={config.variableSource} onChange={(e) => onUpdate({ variableSource: e.target.value })} placeholder="${products}" />
-            </div>
-          )}
-          <div className="form-item">
-            <label>当前项变量：</label>
-            <Input value={config.itemName} onChange={(e) => onUpdate({ itemName: e.target.value })} />
-          </div>
-          <span className="hint">（循环体内的步骤通过连线连接到循环节点的子图中）</span>
         </>
       );
 
@@ -630,6 +645,39 @@ function renderConfigForm(stepType: string, config: any, onUpdate: (partial: any
             <label>消息内容：</label>
             <Input.TextArea rows={config.msgType === 'markdown' ? 6 : 3} value={config.content} onChange={(e) => onUpdate({ content: e.target.value })} placeholder="支持 ${变量} 引用" style={config.msgType === 'markdown' ? { fontFamily: 'Monaco, Consolas, monospace', fontSize: 12 } : {}} />
           </div>
+        </>
+      );
+
+    case 'scheduledTask':
+      return (
+        <>
+          <div className="form-item">
+            <label>触发方式：</label>
+            <Select value={config.run_type || 'cron'} onChange={(v) => onUpdate({ run_type: v })} style={{ width: '100%' }}>
+              <Option value="cron">Cron 表达式（周期执行）</Option>
+              <Option value="once">指定时间（执行一次）</Option>
+            </Select>
+          </div>
+          {config.run_type === 'cron' && (
+            <div className="form-item">
+              <label>Cron 表达式：</label>
+              <Input value={config.cron_expression || ''} onChange={(e) => onUpdate({ cron_expression: e.target.value })} placeholder="0 9 * * * （每天9点）" />
+              <span className="hint">格式：分 时 日 月 星期（如 0 9 * * * 表示每天9点）</span>
+            </div>
+          )}
+          {config.run_type === 'once' && (
+            <div className="form-item">
+              <label>执行时间：</label>
+              <Input value={config.execute_once_time || ''} onChange={(e) => onUpdate({ execute_once_time: e.target.value })} placeholder="2026-11-04 17:15:00" />
+              <span className="hint">格式：YYYY-MM-DD HH:mm:ss</span>
+            </div>
+          )}
+          <div className="form-item">
+            <label>最大触发次数：</label>
+            <InputNumber min={1} value={config.max_trigger_count || 10} onChange={(v) => onUpdate({ max_trigger_count: v || 10 })} style={{ width: '100%' }} />
+            <span className="hint">防止无限触发，达到次数后停止</span>
+          </div>
+          <LoopRangeInfo nodeId={ctx.nodeId} canvas={ctx.canvas} />
         </>
       );
 

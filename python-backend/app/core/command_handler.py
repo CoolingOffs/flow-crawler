@@ -6,6 +6,8 @@ import json
 import os
 import requests
 from typing import Dict, Any, List, Optional
+from datetime import datetime
+from croniter import croniter
 from playwright.sync_api import Page, Browser, Route
 from jsonpath_ng import parse as jsonpath_parse
 from app.core.logger import setup_logger
@@ -117,6 +119,8 @@ class CommandHandler:
                 self._handle_variable_operation(data)
             elif action == 'dingTalkNotify':
                 self._handle_dingtalk_notify(data)
+            elif action == 'scheduledTask':
+                self._handle_scheduled_task(data)
             else:
                 logger.warning(f"未知命令: {action}")
         except Exception as e:
@@ -849,3 +853,61 @@ class CommandHandler:
         except requests.RequestException as e:
             logger.error(f"钉钉推送请求失败: {e}")
             raise
+
+    def _handle_scheduled_task(self, data: Dict[str, Any]) -> None:
+        """
+        处理定时任务命令
+        
+        定时任务是额外的触发器，主流程正常执行完毕后，
+        会根据定时任务的配置周期性地触发执行指定范围的步骤。
+        
+        此方法仅记录定时任务配置，实际的调度执行由 executor 处理。
+        """
+        run_type = data.get('run_type', 'cron')
+        cron_expression = data.get('cron_expression', '')
+        execute_once_time = data.get('execute_once_time', '')
+        max_trigger_count = data.get('max_trigger_count', 10)
+        
+        logger.info(f"注册定时任务: 触发方式={run_type}")
+        
+        if run_type == 'cron':
+            if not cron_expression:
+                raise ValueError("Cron 表达式不能为空")
+            # 验证 Cron 表达式合法性
+            try:
+                cron = croniter(cron_expression, datetime.now())
+                next_time = cron.get_next(datetime)
+                logger.info(f"Cron 表达式: {cron_expression}")
+                logger.info(f"下次触发时间: {next_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            except (ValueError, KeyError) as e:
+                raise ValueError(f"Cron 表达式无效: {cron_expression} - {e}")
+        elif run_type == 'once':
+            if not execute_once_time:
+                raise ValueError("执行时间不能为空")
+            try:
+                target_time = datetime.strptime(execute_once_time, '%Y-%m-%d %H:%M:%S')
+                logger.info(f"执行一次时间: {execute_once_time}")
+            except ValueError:
+                raise ValueError(f"时间格式无效，应为 YYYY-MM-DD HH:mm:ss: {execute_once_time}")
+        
+        logger.info(f"触发步骤范围: 由图中连线决定")
+        logger.info(f"最大触发次数: {max_trigger_count}")
+        
+        # 将定时任务配置存储到变量管理器中，供 executor 后续使用
+        scheduled_task_config = {
+            'run_type': run_type,
+            'cron_expression': cron_expression,
+            'execute_once_time': execute_once_time,
+            'max_trigger_count': max_trigger_count,
+            'loop_start_index': data.get('_loop_start_index', -1),
+            'loop_end_index': data.get('_loop_end_index', -1),
+        }
+        
+        # 存入特殊变量 _scheduled_tasks（数组形式，支持多个定时任务）
+        existing_tasks = self.var_manager.get('_scheduled_tasks')
+        if not isinstance(existing_tasks, list):
+            existing_tasks = []
+        existing_tasks.append(scheduled_task_config)
+        self.var_manager.set('_scheduled_tasks', existing_tasks)
+        
+        logger.info(f"✓ 定时任务已注册（当前共 {len(existing_tasks)} 个定时任务）")
